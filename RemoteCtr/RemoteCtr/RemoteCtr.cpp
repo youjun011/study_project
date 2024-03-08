@@ -19,7 +19,7 @@ using namespace std;
 int main()
 {
     int nRetCode = 0;
-    //test_main
+    
     HMODULE hModule = ::GetModuleHandle(nullptr);
 
     if (hModule != nullptr)
@@ -34,6 +34,11 @@ int main()
         else
         {
             // TODO: 在此处为应用程序的行为编写代码。
+            WSADATA data;
+            WSAStartup(MAKEWORD(1, 1), &data);//TODO:返回值处理；
+            SOCKET serv_sock = socket(PF_INET, SOCK_STREAM, 0);
+            //TODO:校验；
+
         }
     }
     else
