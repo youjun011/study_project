@@ -19,7 +19,7 @@ using namespace std;
 int main()
 {
     int nRetCode = 0;
-    //
+    //test_main
     HMODULE hModule = ::GetModuleHandle(nullptr);
 
     if (hModule != nullptr)
