@@ -2,9 +2,23 @@
 #include "pch.h"
 #include "framework.h"
 
+#pragma pack(push)
+#pragma pack(1)	//设置结构体、联合体和类成员的对齐方式为1字节对齐。
+
 class CPacket {
 public:
 	CPacket():sHead(0),nLength(0),sCmd(0),sSum(0){}
+	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
+		sHead = 0xFEFF;
+		nLength = nSize + 4;
+		sCmd = nCmd;
+		strData.resize(nSize);
+		memcpy((void*)strData.c_str(), pData, nSize);
+		sSum = 0;
+		for (size_t j = 0;j < strData.size();j++) {
+			sSum += BYTE(strData[j]) & 0xFF;
+		}
+	}
 	CPacket(const CPacket& pack) {
 		sHead = pack.sHead;
 		nLength = pack.nLength;
@@ -58,14 +72,29 @@ public:
 		}
 		return *this;
 	}
+	int Size() {
+		return nLength + 6;
+	}
+	const char* Data() {
+		strOut.resize(nLength + 6);
+		BYTE* pData = (BYTE*)strOut.c_str();
+		*(WORD*)pData = sHead;pData += 2;
+		*(DWORD*)pData = nLength;pData += 4;
+		*(WORD*)pData = sCmd;pData += 2;
+		memcpy(pData, strData.c_str(), strData.size());pData += strData.size();
+		*(WORD*)pData = sSum;
+		return strOut.c_str();
+	}
+
 	WORD sHead;//固定位FE FF
 	DWORD nLength;//包长度(包括下面3个!但是不包括自身);
 	WORD sCmd;//控制命令
-	std::string strData;//包数据
+	std::string strData;//包数据，一个对象,传&仅仅会传一个地址，不是数据；
 	WORD sSum;	//和校验
+	std::string strOut;
 };
 
-
+#pragma pack(pop)
 
 class CServerSocket
 {
@@ -123,7 +152,11 @@ public:
 	}
 	bool Send(const char* pData, int nSize) {
 		if (m_client == -1)return false;
-		return send(m_client, pData, nSize, 0);
+		return send(m_client, pData, nSize, 0)>0;
+	}
+	bool Send(CPacket& pack) {
+		if (m_client == -1)return false;
+		return send(m_client, pack.Data(), pack.Size(), 0)>0;
 	}
 
 private:

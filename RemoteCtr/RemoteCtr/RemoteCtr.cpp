@@ -5,7 +5,7 @@
 #include "framework.h"
 #include "RemoteCtr.h"
 #include "ServerSocket.h"
-
+#include<direct.h>
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -16,6 +16,34 @@
 CWinApp theApp;
   
 using namespace std;
+void Dump(BYTE* pData, size_t nSize) {
+    std::string strout;
+    for (size_t i = 0;i < nSize;i++) {
+        char buf[8] = "";
+        if (i > 0 && (i % 16 == 0))strout += "\n";
+        snprintf(buf, sizeof(buf), "%02X ", pData[i] & 0xFF);
+        strout += buf;
+    }
+    strout += "\n";
+    OutputDebugStringA(strout.c_str());
+}
+
+
+int MakeDriverInfo() {
+    std::string result;
+    for (int i = 1;i <= 26;i++) {
+        if (_chdrive(i) == 0) {
+            if (result.size() > 0)
+                result += ',';
+            result += 'A' + i - 1;
+        }
+    }
+    CPacket pack(1, (BYTE*)result.c_str(), result.size());//打包用的；
+    Dump((BYTE*)pack.Data(), pack.Size());
+    //CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
 
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
@@ -34,8 +62,7 @@ int main()  //extern声明的全局变量，在main函数之前实现；
         }
         else
         {
-            // TODO: 在此处为应用程序的行为编写代码。
-            CServerSocket* pserver = CServerSocket::getInstance();
+            /*CServerSocket* pserver = CServerSocket::getInstance();
             if (pserver->InitSocket() == false) {
                 MessageBox(NULL, _T("网络初始化异常"), _T("网络初始化失败"), MB_OK | MB_ICONERROR);
                 exit(0);
@@ -50,9 +77,15 @@ int main()  //extern声明的全局变量，在main函数之前实现；
                     MessageBox(NULL, _T("无法正常接入用户"), _T("接入用户失败"), MB_OK | MB_ICONERROR);
                     count++;
                 }
-                pserver->DealCommand();
-                //TODO:
+                pserver->DealCommand();*/
+            int nCmd = 1;
+            switch (nCmd)
+            {
+            case1:  //  查看磁盘分区；
+                MakeDriverInfo();
+                break;
             }
+            
 
         }
     }
