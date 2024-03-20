@@ -43,7 +43,61 @@ int MakeDriverInfo() {
     //CServerSocket::getInstance()->Send(pack);
     return 0;
 }
+typedef struct file_info {
+    file_info() {
+        IsInvalid = FALSE;  //是否无效的文件
+        IsDirectory = -1;
+        hasNext = TRUE;
+        memset(szFileName, 0, sizeof(szFileName));
+    }
+    BOOL IsInvalid;
+    BOOL IsDirectory;
+    BOOL hasNext;
+    char szFileName[256];//文件名
+}FILEINFO, * PFILEINFO;
+#include<io.h>
+#include<stdio.h>
+#include<list>
+int MakeDirectoryInfo() {
+    std::string strPath;
+    //std::list<FILEINFO>listFileInfos;
+    if (CServerSocket::getInstance()->GetFilePath(strPath) == false) {
+        OutputDebugString(_T("当前命令不是获取文件列表信息，解析错误"));
+        return -1;
+    }
+    if (_chdir(strPath.c_str()) == -1) {
+        FILEINFO finfo;
+        finfo.IsInvalid = TRUE;
+        finfo.IsDirectory = TRUE;
+        finfo.hasNext = FALSE;
+        memcpy(finfo.szFileName, strPath.c_str(), strPath.size());
+        //listFileInfos.push_back(finfo);
+        CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
+        CServerSocket::getInstance()->Send(pack);
+        OutputDebugString(_T("没有访问权限！！"));
+        return -2;
+    }
+    _finddata_t fdata;
+    int hfind = 0;
+    if ((hfind = _findfirst("*", &fdata)) == -1) {
+        OutputDebugString(_T("没有找到任何文件！！"));
+        return -3;
+    }
+    do {
+        FILEINFO finfo;
+        finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0;
+        memcpy(finfo.szFileName, fdata.name, strlen(fdata.name));
+        CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
+        CServerSocket::getInstance()->Send(pack);
+        //listFileInfos.push_back(finfo);
+    } while (!_findnext(hfind, &fdata));
+    FILEINFO finfo;
+    finfo.hasNext = FALSE;
+    CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
+    CServerSocket::getInstance()->Send(pack);
 
+    return 0;
+}
 
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
@@ -84,6 +138,8 @@ int main()  //extern声明的全局变量，在main函数之前实现；
             case1:  //  查看磁盘分区；
                 MakeDriverInfo();
                 break;
+            case2:  //查看指定目录下的文件；
+                MakeDirectoryInfo();
             }
             
 
