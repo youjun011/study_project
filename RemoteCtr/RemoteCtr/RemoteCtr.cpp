@@ -99,6 +99,46 @@ int MakeDirectoryInfo() {
     return 0;
 }
 
+int Runfile() {
+    std::string strPath;
+    CServerSocket::getInstance()->GetFilePath(strPath);
+    ShellExecuteA(NULL, NULL, strPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
+    CPacket pack(3, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
+#pragma warning(disable:4996)   //fopen sprintf strstr strcpy
+int DownloadFile() {
+    std::string strPath;
+    CServerSocket::getInstance()->GetFilePath(strPath);
+    FILE* file = NULL;
+    errno_t err = fopen_s(&file, strPath.c_str(), "rb");
+    long long data = 0;
+    if (err !=0) {
+        CPacket pack(4, (BYTE*) & data, 8);
+        CServerSocket::getInstance()->Send(pack);
+        return -1;
+    }
+    if (file != NULL) {
+        fseek(file, 0, SEEK_END);
+        data = _ftelli64(file);
+        CPacket head(4, (BYTE*)&data, 8);
+        fseek(file, 0, SEEK_SET);
+        char buff[1024] = "";
+        size_t rlen = 0;
+        do {
+            rlen = fread(buff, 1, 1024, file);
+            CPacket pack(4, (BYTE*)buff, rlen);
+            CServerSocket::getInstance()->Send(pack);
+        } while (rlen >= 1024);
+        fclose(file);
+    }
+    CPacket pack(4, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
     int nRetCode = 0;
@@ -135,11 +175,18 @@ int main()  //extern声明的全局变量，在main函数之前实现；
             int nCmd = 1;
             switch (nCmd)
             {
-            case1:  //  查看磁盘分区；
+            case 1:  //  查看磁盘分区；
                 MakeDriverInfo();
                 break;
-            case2:  //查看指定目录下的文件；
+            case 2:  //查看指定目录下的文件；
                 MakeDirectoryInfo();
+                break;
+            case 3: //打开文件；
+                Runfile();
+                break;
+            case 4: //下载文件；
+                DownloadFile();
+                break;
             }
             
 

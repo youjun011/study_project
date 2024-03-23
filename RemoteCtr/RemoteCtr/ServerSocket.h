@@ -12,8 +12,14 @@ public:
 		sHead = 0xFEFF;
 		nLength = nSize + 4;
 		sCmd = nCmd;
-		strData.resize(nSize);
-		memcpy((void*)strData.c_str(), pData, nSize);
+		if (nSize > 0) {
+			strData.resize(nSize);
+			memcpy((void*)strData.c_str(), pData, nSize);
+		}
+		else {
+			strData.clear();
+		}
+		
 		sSum = 0;
 		for (size_t j = 0;j < strData.size();j++) {
 			sSum += BYTE(strData[j]) & 0xFF;
@@ -90,7 +96,7 @@ public:
 	DWORD nLength;//包长度(包括下面3个!但是不包括自身);
 	WORD sCmd;//控制命令
 	std::string strData;//包数据，一个对象,传&仅仅会传一个地址，不是数据；
-	WORD sSum;	//和校验
+	WORD sSum;	//和校验,只对strData求和
 	std::string strOut;
 };
 
@@ -159,7 +165,7 @@ public:
 		return send(m_client, pack.Data(), pack.Size(), 0)>0;
 	}
 	bool GetFilePath(std::string& strPath) {
-		if (m_packet.sCmd == 2) {
+		if ((m_packet.sCmd >= 2)&& (m_packet.sCmd <= 4)) {
 			strPath = m_packet.strData;
 			return true;
 		}
