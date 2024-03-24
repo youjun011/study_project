@@ -139,6 +139,99 @@ int DownloadFile() {
     return 0;
 }
 
+int MouseEvent() {
+    MOUSEEV mouse;
+    if (CServerSocket::getInstance()->GetMouseEvent(mouse)) {
+        DWORD nFlags = 0;
+        switch (mouse.nButton)
+        {
+        case 0://左键；
+            nFlags = 1;
+            break;
+        case 1://右键
+            nFlags = 2;
+            break;
+        case 2://中键；
+            nFlags = 4;
+            break;
+        case 4://没有按键，鼠标移动
+            nFlags = 8;
+            break;
+        }
+        if (nFlags != 8) {
+            SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
+        }
+        switch (mouse.nAction)
+        {
+        case 0://单击；1,2,4,8表示4个比特位；
+            nFlags |= 0x10;
+            break;
+        case 1://双击；
+            nFlags |= 0x20;
+            break;
+        case 2://按下；
+            nFlags |= 0x40;
+            break;
+        case 3://放开；
+            nFlags |= 0x80;
+            break;
+        default:
+            break;
+        }
+        switch (nFlags)
+        {
+        case 0x21://左键双击
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+        case 0x11://左键单击
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+            break;
+        case 0x41://左键按下
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+            break;
+        case 0x81://左键放开
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+            break;
+
+        case 0x22:
+            mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+            mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+        case 0x12:
+            mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+            mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+            break;
+        case 0x42:
+            mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+            break;
+        case 0x82:
+            mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+            break;
+
+        case 0x24:
+            mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+            mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+        case 0x14:
+            mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+            mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+            break;
+        case 0x44:
+            mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+            break;
+        case 0x84:
+            mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+            break;
+        case 0x08:  //移动鼠标；
+            mouse_event(MOUSEEVENTF_MOVE, mouse.ptXY.x, mouse.ptXY.y, 0, GetMessageExtraInfo());
+            break;
+        }
+        CPacket pack(4, NULL, 0);
+        CServerSocket::getInstance()->Send(pack);
+    }
+    
+    return 0;
+}
+
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
     int nRetCode = 0;
@@ -186,6 +279,9 @@ int main()  //extern声明的全局变量，在main函数之前实现；
                 break;
             case 4: //下载文件；
                 DownloadFile();
+                break;
+            case 5:
+                MouseEvent();
                 break;
             }
             
