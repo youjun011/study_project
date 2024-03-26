@@ -6,6 +6,7 @@
 #include "RemoteCtr.h"
 #include "ServerSocket.h"
 #include<direct.h>
+#include<atlimage.h>
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -228,7 +229,40 @@ int MouseEvent() {
         CPacket pack(4, NULL, 0);
         CServerSocket::getInstance()->Send(pack);
     }
-    
+    else {
+        OutputDebugString(_T("获取鼠标操作参数失败！！"));
+        return -1;
+    }
+    return 0;
+}
+
+int SendScreen() {
+    CImage screen;//GDI
+    HDC hScreen = ::GetDC(NULL);
+    int nBitPerPixel = GetDeviceCaps(hScreen, BITSPIXEL);
+    int nWidth = GetDeviceCaps(hScreen, HORZRES);
+    int nHeight = GetDeviceCaps(hScreen, VERTRES);
+    screen.Create(nWidth, nHeight, nBitPerPixel);
+    BitBlt(screen.GetDC(), 0, 0, 1920, 1060, hScreen, 0, 0, SRCCOPY);
+    ReleaseDC(NULL, hScreen);
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+    if (hMem == NULL)return -1;
+    IStream* pStream = NULL;
+    HRESULT ret =  CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+    if (ret == S_OK) {
+        //screen.Save(_T("test2020.jpg"), Gdiplus::ImageFormatJPEG);
+        screen.Save(pStream, Gdiplus::ImageFormatJPEG);
+        LARGE_INTEGER bg = { 0 };
+        pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+        PBYTE pData = (PBYTE)GlobalLock(hMem);
+        SIZE_T nSize = GlobalSize(hMem);
+        CPacket pack(6, pData, nSize);
+        GlobalUnlock(hMem);
+    }
+    //screen.Save(_T("test2020.webp"), Gdiplus::ImageFormatTIFF);
+    pStream->Release();
+    GlobalFree(hMem);
+    screen.ReleaseDC();
     return 0;
 }
 
@@ -265,7 +299,7 @@ int main()  //extern声明的全局变量，在main函数之前实现；
                     count++;
                 }
                 pserver->DealCommand();*/
-            int nCmd = 1;
+            int nCmd = 6;
             switch (nCmd)
             {
             case 1:  //  查看磁盘分区；
@@ -282,6 +316,9 @@ int main()  //extern声明的全局变量，在main函数之前实现；
                 break;
             case 5:
                 MouseEvent();
+                break;
+            case 6:
+                SendScreen();//发送屏幕截图信息；
                 break;
             }
             
