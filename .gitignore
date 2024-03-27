@@ -4,3 +4,6 @@
 /RemoteCtr/x64
 /RemoteCtr/RemoteCtr/x64
 /RemoteCtr/RemoteClient/x64
+/RemoteCtr/RemoteCtr/RemoteCtr.aps
+/RemoteCtr/RemoteCtr/*.user
+/RemoteCtr/RemoteClient/RemoteClient.aps

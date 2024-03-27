@@ -266,6 +266,16 @@ int SendScreen() {
     return 0;
 }
 
+int LockMachine() {
+
+    return 0;
+}
+
+int UnloakMachine() {
+
+    return 0;
+}
+
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
     int nRetCode = 0;
@@ -320,6 +330,11 @@ int main()  //extern声明的全局变量，在main函数之前实现；
             case 6:
                 SendScreen();//发送屏幕截图信息；
                 break;
+            case 7: //锁机；
+                LockMachine();
+                break;
+            case 8: //解锁
+                UnloakMachine();
             }
             
 
