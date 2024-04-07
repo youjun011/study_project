@@ -266,13 +266,59 @@ int SendScreen() {
     return 0;
 }
 
-int LockMachine() {
+#include"LockDialog.h"
+CLockDialog dlg;
+unsigned threadid;
+unsigned _stdcall threadLockDlg(void* arg) {
+    TRACE("%s(%d):%d\r\n", __FUNCTION__, __LINE__, GetCurrentThreadId());
+    dlg.Create(IDD_DIALOG_INFO, NULL);
+    dlg.ShowWindow(SW_SHOW);
+    CRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = GetSystemMetrics(SM_CXFULLSCREEN);
+    rect.bottom = GetSystemMetrics(SM_CYFULLSCREEN) - 30;
+    dlg.MoveWindow(rect);
+    //窗口置顶；
+    dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+    //限制鼠标活动范围
+    ShowCursor(false);
 
+    dlg.GetWindowRect(rect);
+    ClipCursor(rect);   //限制鼠标活动范围；
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+        if (msg.message == WM_KEYDOWN) {
+            TRACE("msg:%08X wparam:%08X lparam:%08X\r\n", msg.message, msg.wParam, msg.lParam);
+            if (msg.wParam == 0x1B) {   //est才有反应；
+                break;
+            }
+
+        }
+    }
+    ShowCursor(true);
+    dlg.DestroyWindow();
+    _endthreadex(0);
+    return 0;
+}
+
+int LockMachine() {
+    if ((dlg.m_hWnd == NULL) || (dlg.m_hWnd == INVALID_HANDLE_VALUE)) {
+       // _beginthread(threadLockDlg, 0, NULL);
+        _beginthreadex(NULL, 0, threadLockDlg, NULL, 0, &threadid);
+        TRACE("threadid=%d\r\n", threadid);
+    }
+    CPacket pack(7, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
     return 0;
 }
 
 int UnloakMachine() {
-
+    PostThreadMessage(threadid, WM_KEYDOWN, 0x1b, 0x10001);//根据线程来的；
+    CPacket pack(7, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
     return 0;
 }
 
@@ -309,7 +355,7 @@ int main()  //extern声明的全局变量，在main函数之前实现；
                     count++;
                 }
                 pserver->DealCommand();*/
-            int nCmd = 6;
+            int nCmd = 7;
             switch (nCmd)
             {
             case 1:  //  查看磁盘分区；
@@ -332,11 +378,16 @@ int main()  //extern声明的全局变量，在main函数之前实现；
                 break;
             case 7: //锁机；
                 LockMachine();
+               /* Sleep(50);
+                LockMachine();*/
                 break;
             case 8: //解锁
                 UnloakMachine();
             }
-            
+            Sleep(5000);
+            UnloakMachine();
+            while ((dlg.m_hWnd != NULL) && (dlg.m_hWnd != INVALID_HANDLE_VALUE))
+                Sleep(100);
 
         }
     }
