@@ -40,8 +40,8 @@ int MakeDriverInfo() {
         }
     }
     CPacket pack(1, (BYTE*)result.c_str(), result.size());//打包用的；
-    Dump((BYTE*)pack.Data(), pack.Size());
-    //CServerSocket::getInstance()->Send(pack);
+    //Dump((BYTE*)pack.Data(), pack.Size());
+    CServerSocket::getInstance()->Send(pack);
     return 0;
 }
 typedef struct file_info {
