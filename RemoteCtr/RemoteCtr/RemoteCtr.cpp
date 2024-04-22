@@ -322,6 +322,47 @@ int UnloakMachine() {
     return 0;
 }
 
+int TestConnect() {
+    CPacket pack(1981, NULL, 0);
+    CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
+int ExcuteCommand(int nCmd) {
+    //int nCmd = 7;
+    int ret = 0;
+    switch (nCmd)
+    {
+    case 1:  //  查看磁盘分区；
+        ret = MakeDriverInfo();
+        break;
+    case 2:  //查看指定目录下的文件；
+        ret = MakeDirectoryInfo();
+        break;
+    case 3: //打开文件；
+        ret = Runfile();
+        break;
+    case 4: //下载文件；
+        ret = DownloadFile();
+        break;
+    case 5:
+        ret = MouseEvent();
+        break;
+    case 6:
+        ret = SendScreen();//发送屏幕截图信息；
+        break;
+    case 7: //锁机；
+        ret = LockMachine();
+        /* Sleep(50);
+         LockMachine();*/
+        break;
+    case 8: //解锁
+        ret = UnloakMachine();
+    case 1981:
+        ret = TestConnect();
+    }
+    return ret;
+}
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
     int nRetCode = 0;
@@ -339,7 +380,7 @@ int main()  //extern声明的全局变量，在main函数之前实现；
         }
         else
         {
-            /*CServerSocket* pserver = CServerSocket::getInstance();
+            CServerSocket* pserver = CServerSocket::getInstance();
             if (pserver->InitSocket() == false) {
                 MessageBox(NULL, _T("网络初始化异常"), _T("网络初始化失败"), MB_OK | MB_ICONERROR);
                 exit(0);
@@ -354,41 +395,15 @@ int main()  //extern声明的全局变量，在main函数之前实现；
                     MessageBox(NULL, _T("无法正常接入用户"), _T("接入用户失败"), MB_OK | MB_ICONERROR);
                     count++;
                 }
-                pserver->DealCommand();*/
-            int nCmd = 7;
-            switch (nCmd)
-            {
-            case 1:  //  查看磁盘分区；
-                MakeDriverInfo();
-                break;
-            case 2:  //查看指定目录下的文件；
-                MakeDirectoryInfo();
-                break;
-            case 3: //打开文件；
-                Runfile();
-                break;
-            case 4: //下载文件；
-                DownloadFile();
-                break;
-            case 5:
-                MouseEvent();
-                break;
-            case 6:
-                SendScreen();//发送屏幕截图信息；
-                break;
-            case 7: //锁机；
-                LockMachine();
-               /* Sleep(50);
-                LockMachine();*/
-                break;
-            case 8: //解锁
-                UnloakMachine();
+                int ret = pserver->DealCommand();
+                if (ret > 0) {
+                    ret = ExcuteCommand(pserver->GetPacket().sCmd);
+                    if (ret != 0) {
+                        TRACE(_T("执行命令失败：%d ret=%d\r\n", pserver->GetPacket().sCmd, ret));
+                    }
+                    pserver->CloseClient();
+                }
             }
-            Sleep(5000);
-            UnloakMachine();
-            while ((dlg.m_hWnd != NULL) && (dlg.m_hWnd != INVALID_HANDLE_VALUE))
-                Sleep(100);
-
         }
     }
     else

@@ -65,6 +65,7 @@ BEGIN_MESSAGE_MAP(CRemoteClientDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BTN_TEST, &CRemoteClientDlg::OnBnClickedBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -148,8 +149,25 @@ void CRemoteClientDlg::OnPaint()
 
 //当用户拖动最小化窗口时系统调用此函数取得光标
 //显示。
+//CClientSocket* pclient = NULL;
 HCURSOR CRemoteClientDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CRemoteClientDlg::OnBnClickedBtnTest()
+{
+	CClientSocket* pClient = CClientSocket::getInstance();
+	int ret = pClient->InitSocket("127.0.0.1");
+	if (!ret) {
+		AfxMessageBox(_T("网络初始化失败！"));
+		return;
+	}
+	CPacket pack(1981, NULL, 0);
+	pClient->Send(pack);
+	pClient->DealCommand();
+	TRACE("ack: %d\r\t", pClient->GetPacket().sCmd);
+	
+}
