@@ -44,18 +44,7 @@ int MakeDriverInfo() {
     CServerSocket::getInstance()->Send(pack);
     return 0;
 }
-typedef struct file_info {
-    file_info() {
-        IsInvalid = FALSE;  //是否无效的文件
-        IsDirectory = -1;
-        hasNext = TRUE;
-        memset(szFileName, 0, sizeof(szFileName));
-    }
-    BOOL IsInvalid;
-    BOOL IsDirectory;
-    BOOL hasNext;
-    char szFileName[256];//文件名
-}FILEINFO, * PFILEINFO;
+
 #include<io.h>
 #include<stdio.h>
 #include<list>
@@ -68,26 +57,27 @@ int MakeDirectoryInfo() {
     }
     if (_chdir(strPath.c_str()) == -1) {
         FILEINFO finfo;
-        finfo.IsInvalid = TRUE;
-        finfo.IsDirectory = TRUE;
         finfo.hasNext = FALSE;
-        memcpy(finfo.szFileName, strPath.c_str(), strPath.size());
-        //listFileInfos.push_back(finfo);
         CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
         CServerSocket::getInstance()->Send(pack);
         OutputDebugString(_T("没有访问权限！！"));
         return -2;
     }
     _finddata_t fdata;
-    int hfind = 0;
+    long long hfind = 0;
     if ((hfind = _findfirst("*", &fdata)) == -1) {
         OutputDebugString(_T("没有找到任何文件！！"));
+        FILEINFO finfo;
+        finfo.hasNext = FALSE;
+        CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
+        CServerSocket::getInstance()->Send(pack);
         return -3;
     }
     do {
         FILEINFO finfo;
         finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0;
         memcpy(finfo.szFileName, fdata.name, strlen(fdata.name));
+        TRACE(("finfo.szFileName:%s\r\n"), finfo.szFileName);
         CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
         CServerSocket::getInstance()->Send(pack);
         //listFileInfos.push_back(finfo);
