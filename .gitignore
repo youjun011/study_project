@@ -7,3 +7,8 @@
 /RemoteCtr/RemoteCtr/RemoteCtr.aps
 /RemoteCtr/RemoteCtr/*.user
 /RemoteCtr/RemoteClient/RemoteClient.aps
+/RemoteCtr/Debug
+/RemoteCtr/RemoteClient/Debug
+/RemoteCtr/RemoteCtr/Debug
+*.xml
+*.txt

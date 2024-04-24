@@ -115,6 +115,7 @@ int DownloadFile() {
         fseek(file, 0, SEEK_END);
         data = _ftelli64(file);
         CPacket head(4, (BYTE*)&data, 8);
+        CServerSocket::getInstance()->Send(head);
         fseek(file, 0, SEEK_SET);
         char buff[1024] = "";
         size_t rlen = 0;
@@ -318,6 +319,18 @@ int TestConnect() {
     return 0;
 }
 
+int DeleteLocalFile() {
+    std::string strPath;
+    CServerSocket::getInstance()->GetFilePath(strPath);
+    std::wstring wPath(strPath.begin(), strPath.end());
+    if (DeleteFile(wPath.c_str()) == 0) {
+        AfxMessageBox(_T("删除文件失败！！"));
+    }
+    CPacket pack(9, NULL, 0);
+    bool ret = CServerSocket::getInstance()->Send(pack);
+    return 0;
+}
+
 int ExcuteCommand(int nCmd) {
     //int nCmd = 7;
     int ret = 0;
@@ -348,6 +361,9 @@ int ExcuteCommand(int nCmd) {
         break;
     case 8: //解锁
         ret = UnloakMachine();
+    case 9://删除文件；
+        ret = DeleteLocalFile();
+        break;
     case 1981:
         ret = TestConnect();
     }
