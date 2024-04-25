@@ -258,6 +258,7 @@ void CRemoteClientDlg::LoadFileInfo()
 	int nCmd = SendCommandPacket(2, false, (BYTE*)(LPCSTR)strPath.GetString(), strPath.GetLength());
 	CClientSocket* pClient = CClientSocket::getInstance();
 	PFILEINFO pInfo = (PFILEINFO)pClient->GetPacket().strData.c_str();
+	int Count = 0;
 	while (pInfo->hasNext) {
 		if (pInfo->IsDirectory) {
 			if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == "..")) {
@@ -273,11 +274,13 @@ void CRemoteClientDlg::LoadFileInfo()
 		else {
 			m_List.InsertItem(0, pInfo->szFileName);
 		}
+		Count++;
 		int cmd = pClient->DealCommand();
 		TRACE("ack: %d\r\t", pClient->GetPacket().sCmd);
 		if (cmd < 0)break;
 		pInfo = (PFILEINFO)pClient->GetPacket().strData.c_str();
 	}
+	TRACE(_T("File Count:%d\r\n"), Count);
 	pClient->CloseSocket();
 }
 

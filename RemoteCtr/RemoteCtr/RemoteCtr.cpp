@@ -73,6 +73,7 @@ int MakeDirectoryInfo() {
         CServerSocket::getInstance()->Send(pack);
         return -3;
     }
+    int count = 0;
     do {
         FILEINFO finfo;
         finfo.IsDirectory = (fdata.attrib & _A_SUBDIR) != 0;
@@ -80,8 +81,10 @@ int MakeDirectoryInfo() {
         TRACE(("finfo.szFileName:%s\r\n"), finfo.szFileName);
         CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
         CServerSocket::getInstance()->Send(pack);
+        count++;
         //listFileInfos.push_back(finfo);
     } while (!_findnext(hfind, &fdata));
+    TRACE(_T("send count:%d\r\n"), count);
     FILEINFO finfo;
     finfo.hasNext = FALSE;
     CPacket pack(2, (BYTE*)&finfo, sizeof(finfo));
