@@ -241,34 +241,32 @@ void CRemoteClientDlg::threadWatchData()
 {
 	CClientSocket* pClient = NULL;
 	do {
-		pClient == CClientSocket::getInstance();
+		pClient = CClientSocket::getInstance();
 	} while (pClient == NULL);
 	for (;;) {
-		CPacket pack(6, NULL, 0);
-		bool ret = pClient->Send(pack);
-		if (ret) {
-			int cmd = pClient->DealCommand();
-			if (cmd == 6) {
-				if (m_isFull == false) {
-					BYTE* pData = (BYTE*)pClient->GetPacket().strData.c_str();
-					HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
-					if (hMem == nullptr) {
-						TRACE("内存不足了！");
-						Sleep(1);	//防止cpu一直卡死在这里
-						continue;
-					}
-					IStream* pStream = NULL;
-					HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
-					if (hRet == S_OK) {
-						ULONG length = 0;
-						pStream->Write(pData, pClient->GetPacket().strData.size(), &length);
-						LARGE_INTEGER bg = { 0 };
-						pStream->Seek(bg, STREAM_SEEK_SET, NULL);
-						m_image.Load(pStream);
-						m_isFull = true;
-					}
-					
+		if (m_isFull == false) {
+			int ret = SendMessage(WM_SEND_PACKET, 6 << 1 | 1);
+			if (ret == 6) {
+				BYTE* pData = (BYTE*)pClient->GetPacket().strData.c_str();
+				HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+				if (hMem == nullptr) {
+					TRACE("内存不足了！");
+					Sleep(1);	//防止cpu一直卡死在这里
+					continue;
 				}
+				IStream* pStream = NULL;
+				HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+				if (hRet == S_OK) {
+					ULONG length = 0;
+					pStream->Write(pData, pClient->GetPacket().strData.size(), &length);
+					LARGE_INTEGER bg = { 0 };
+					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+					m_image.Load(pStream);
+					m_isFull = true;
+				}
+			}
+			else {
+				Sleep(1);
 			}
 		}
 		else {
@@ -496,17 +494,31 @@ void CRemoteClientDlg::OnRunFile()
 
 LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParm, LPARAM lParam)
 {
-	CString strFile = (LPCSTR)lParam;
-	int ret = SendCommandPacket(wParm>>1, wParm&1, (BYTE*)(LPCSTR)strFile, strFile.GetLength());
-	
+	int ret = 0;
+	int cmd = wParm >> 1;
+	switch (cmd)
+	{
+	case 4: {
+		CString strFile = (LPCSTR)lParam;
+		ret = SendCommandPacket(cmd, wParm & 1, (BYTE*)(LPCSTR)strFile, strFile.GetLength());
+	}
+		  break;
+	case 6: {
+		ret = SendCommandPacket(cmd, wParm & 1);
+	}
+		  break;
+	default:
+		ret = -1;
+		break;
+	}
 	return ret;
 }
 
 
 void CRemoteClientDlg::OnBnClickedBtnStartWatch()
 {
-	_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this);
 	CWathchDialog dlg(this);
+	_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this);
 	dlg.DoModal();
 }
 
