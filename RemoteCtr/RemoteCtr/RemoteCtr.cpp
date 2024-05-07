@@ -244,7 +244,7 @@ int SendScreen() {
     IStream* pStream = NULL;
     HRESULT ret =  CreateStreamOnHGlobal(hMem, TRUE, &pStream);
     if (ret == S_OK) {
-        //screen.Save(_T("test2020.jpg"), Gdiplus::ImageFormatJPEG);
+        //screen.Save(_T("test2024.jpg"), Gdiplus::ImageFormatJPEG);
         screen.Save(pStream, Gdiplus::ImageFormatJPEG);
         LARGE_INTEGER bg = { 0 };
         pStream->Seek(bg, STREAM_SEEK_SET, NULL);
