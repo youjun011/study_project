@@ -238,12 +238,12 @@ void CRemoteClientDlg::threadEntryForWatch(void* arg)
 }
 
 void CRemoteClientDlg::threadWatchData()
-{
+{	//可能存在异步问题导致程序崩溃；
 	CClientSocket* pClient = NULL;
 	do {
 		pClient = CClientSocket::getInstance();
 	} while (pClient == NULL);
-	for (;;) {
+	while(!m_isClosed) {
 		if (m_isFull == false) {
 			int ret = SendMessage(WM_SEND_PACKET, 6 << 1 | 1);
 			if (ret == 6) {
@@ -261,6 +261,7 @@ void CRemoteClientDlg::threadWatchData()
 					pStream->Write(pData, pClient->GetPacket().strData.size(), &length);
 					LARGE_INTEGER bg = { 0 };
 					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+					if ((HBITMAP)m_image != NULL)m_image.Destroy();
 					m_image.Load(pStream);
 					m_isFull = true;
 				}
@@ -521,9 +522,12 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParm, LPARAM lParam)
 
 void CRemoteClientDlg::OnBnClickedBtnStartWatch()
 {
+	m_isClosed = false;
 	CWathchDialog dlg(this);
-	_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this);
+	HANDLE hThread = (HANDLE)_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this);
 	dlg.DoModal();
+	m_isClosed = true;
+	WaitForSingleObject(hThread, 500);
 }
 
 

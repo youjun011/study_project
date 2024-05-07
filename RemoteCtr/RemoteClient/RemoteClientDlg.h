@@ -35,6 +35,7 @@ public:
 private:
 	CImage m_image;//缓存
 	bool m_isFull;//缓存是否有数据
+	bool m_isClosed;//监控是否关闭；
 private:
 	static void threadEntryForWatch(void* arg);
 	void threadWatchData();
