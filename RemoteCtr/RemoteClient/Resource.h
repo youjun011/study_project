@@ -12,7 +12,9 @@
 #define IDD_DIG_WATCH                   133
 #define IDC_BUTTON1                     1000
 #define IDC_BTN_TEST                    1000
+#define IDC_BTN_UNLOCK                  1000
 #define IDC_IPADDRESS_SERV              1001
+#define IDC_BTN_LOCK                    1001
 #define IDC_EDIT_PORT                   1002
 #define IDC_STATIC_PORT                 1003
 #define IDC_TREE_DIR                    1004
@@ -20,7 +22,6 @@
 #define IDC_BTN_START_WATCH             1006
 #define IDC_BTN_FILEINFO                1007
 #define IDC_EDIT_INFO                   1007
-#define IDC_PIC_WATCH                   1008
 #define IDC_WATCH                       1008
 #define ID_32771                        32771
 #define ID_32772                        32772

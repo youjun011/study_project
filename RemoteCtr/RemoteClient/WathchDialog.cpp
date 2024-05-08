@@ -39,6 +39,8 @@ BEGIN_MESSAGE_MAP(CWathchDialog, CDialog)
 	ON_WM_RBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_STN_CLICKED(IDC_WATCH, &CWathchDialog::OnStnClickedWatch)
+	ON_BN_CLICKED(IDC_BTN_LOCK, &CWathchDialog::OnBnClickedBtnLock)
+	ON_BN_CLICKED(IDC_BTN_UNLOCK, &CWathchDialog::OnBnClickedBtnUnlock)
 END_MESSAGE_MAP()
 
 
@@ -215,8 +217,8 @@ void CWathchDialog::OnMouseMove(UINT nFlags, CPoint point)
 		event.nButton = 8;
 		event.nAction = 0;
 		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
 	}
-	//pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
 	CDialog::OnMouseMove(nFlags, point);
 }
 
@@ -244,4 +246,18 @@ void CWathchDialog::OnOK()
 	// TODO: 在此添加专用代码和/或调用基类
 
 	//CDialog::OnOK();
+}
+
+
+void CWathchDialog::OnBnClickedBtnLock()
+{
+	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+	pParent->SendMessage(WM_SEND_PACKET, 7 << 1 | 1);
+}
+
+
+void CWathchDialog::OnBnClickedBtnUnlock()
+{
+	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
+	pParent->SendMessage(WM_SEND_PACKET, 8 << 1 | 1);
 }

@@ -137,7 +137,7 @@ BOOL CRemoteClientDlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 	UpdateData();
 	m_nPort = _T("9527");
-	m_server_address = 0x7F000001;
+	m_server_address = 0xC0A84181;
 	UpdateData(FALSE);
 	m_dlgStatus.Create(IDD_DIG_STATUS, this);
 	m_dlgStatus.ShowWindow(SW_HIDE);
@@ -508,7 +508,9 @@ LRESULT CRemoteClientDlg::OnSendPacket(WPARAM wParm, LPARAM lParam)
 		ret = SendCommandPacket(cmd, wParm & 1, (BYTE*)lParam, sizeof(MOUSEEV));
 	}
 		  break;
-	case 6: {
+	case 6:
+	case 7:
+	case 8: {
 		ret = SendCommandPacket(cmd, wParm & 1);
 	}
 		  break;
@@ -525,7 +527,7 @@ void CRemoteClientDlg::OnBnClickedBtnStartWatch()
 	m_isClosed = false;
 	CWathchDialog dlg(this);
 	HANDLE hThread = (HANDLE)_beginthread(CRemoteClientDlg::threadEntryForWatch, 0, this);
-	dlg.DoModal();
+	dlg.DoModal();	//会阻塞在这里
 	m_isClosed = true;
 	WaitForSingleObject(hThread, 500);
 }
