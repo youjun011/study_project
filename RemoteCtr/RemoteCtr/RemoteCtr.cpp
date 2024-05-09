@@ -35,29 +35,19 @@ int main()  //extern声明的全局变量，在main函数之前实现；
         {
             CCommand cmd;
             CServerSocket* pserver = CServerSocket::getInstance();
-            if (pserver->InitSocket() == false) {
+            int ret = pserver->Run(&CCommand::RunCommand, &cmd);
+            switch (ret)
+            {
+            case -1:
                 MessageBox(NULL, _T("网络初始化异常"), _T("网络初始化失败"), MB_OK | MB_ICONERROR);
                 exit(0);
+                break;
+            case -2:
+                MessageBox(NULL, _T("多次无法正常接入用户！！"), _T("接入用户失败"), MB_OK | MB_ICONERROR);
+                exit(0);
+                break;
             }
-            int count = 0;
-            while (CServerSocket::getInstance()!=NULL) {
-                if (pserver->AcceptClient() == false) {
-                    if (count >= 3) {
-                        MessageBox(NULL, _T("多次无法正常接入用户！！"), _T("接入用户失败"), MB_OK | MB_ICONERROR);
-                        exit(0);
-                    }
-                    MessageBox(NULL, _T("无法正常接入用户"), _T("接入用户失败"), MB_OK | MB_ICONERROR);
-                    count++;
-                }
-                int ret = pserver->DealCommand();
-                if (ret > 0) {
-                    ret = cmd.ExcuteCommand(ret);
-                    if (ret != 0) {
-                        TRACE(_T("执行命令失败：%d ret=%d\r\n", pserver->GetPacket().sCmd, ret));
-                    }
-                    pserver->CloseClient();
-                }
-            }
+
         }
     }
     else
