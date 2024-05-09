@@ -179,8 +179,8 @@ protected:
             } while (rlen >= 1024);
             fclose(file);
         }
-        CPacket pack(4, NULL, 0);
-        listPacket.push_back(pack);
+        //CPacket pack(4, NULL, 0);
+        //listPacket.push_back(pack);
         return 0;
     }
 
