@@ -82,7 +82,7 @@ public:
 	int Size() {
 		return nLength + 6;
 	}
-	const char* Data() {
+	const char* Data(std::string strOut)const {
 		strOut.resize(nLength + 6);
 		BYTE* pData = (BYTE*)strOut.c_str();
 		*(WORD*)pData = sHead; pData += 2;
@@ -98,7 +98,7 @@ public:
 	WORD sCmd;//控制命令
 	std::string strData;//包数据，一个对象,传&仅仅会传一个地址，不是数据；
 	WORD sSum;	//和校验,只对strData求和
-	std::string strOut;
+	//std::string strOut;
 };
 
 #pragma pack(pop)
@@ -136,15 +136,15 @@ public:
 		}
 		return m_instance;
 	}
-	bool InitSocket(int nIP,int nPort) {
+	bool InitSocket() {
 		if (m_sock != INVALID_SOCKET)CloseSocket();
 		m_sock = socket(PF_INET, SOCK_STREAM, 0);
 		if (m_sock == -1)return false;
 		sockaddr_in serv_adr;
 		memset(&serv_adr, 0, sizeof(serv_adr));
 		serv_adr.sin_family = AF_INET;
-		serv_adr.sin_addr.s_addr = htonl(nIP);
-		serv_adr.sin_port = htons(nPort);
+		serv_adr.sin_addr.s_addr = htonl(m_nIP);
+		serv_adr.sin_port = htons(m_nPort);
 		if (serv_adr.sin_addr.s_addr == INADDR_NONE) {
 			AfxMessageBox(_T("指定IP地址，不存在"));
 			return false;
@@ -181,9 +181,11 @@ public:
 		if (m_sock == -1)return false;
 		return send(m_sock, pData, nSize, 0) > 0;
 	}
-	bool Send(CPacket& pack) {
+	bool Send(const CPacket& pack) {
 		if (m_sock == -1)return false;
-		return send(m_sock, pack.Data(), pack.Size(), 0) > 0;
+		std::string strOut;
+		pack.Data(strOut);
+		return send(m_sock, strOut.c_str(), strOut.size(), 0) > 0;
 	}
 	bool GetFilePath(std::string& strPath) {
 		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4)) {
@@ -206,17 +208,29 @@ public:
 		closesocket(m_sock);
 		m_sock = INVALID_SOCKET;
 	}
+	void UpdateAddress(int nIP, int nPort) {
+		m_nIP = nIP;
+		m_nPort = nPort;
+	}
 private:
+	int m_nIP;
+	int m_nPort;
 	std::vector<char>m_buffer;
 	SOCKET m_sock;
 	CPacket m_packet;
 	CClientSocket& operator=(const CClientSocket& ss) {
 
 	}
-	CClientSocket(const CClientSocket& ss) {
+	CClientSocket(const CClientSocket& ss)
+	{
 		m_sock = ss.m_sock;
+		m_nIP = ss.m_nIP;
+		m_nPort = ss.m_nPort;
 	}
-	CClientSocket() {
+	CClientSocket():
+		m_nIP(INADDR_ANY),
+		m_nPort(0) 
+	{
 		if (InitSockEnv() == FALSE) {
 			MessageBox(NULL, _T("无法初始化套接字环境！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
 			exit(0);
