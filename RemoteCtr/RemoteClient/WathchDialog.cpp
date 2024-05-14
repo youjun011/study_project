@@ -6,7 +6,7 @@
 #include "afxdialogex.h"
 #include "WathchDialog.h"
 #include "RemoteClientDlg.h"
-
+#include "ClientController.h"
 // CWathchDialog 对话框
 
 IMPLEMENT_DYNAMIC(CWathchDialog, CDialog)
@@ -16,6 +16,7 @@ CWathchDialog::CWathchDialog(CWnd* pParent /*=nullptr*/)
 {
 	m_nObjWidth = -1;
 	m_nObjHeight = -1;
+	m_isFull = false;
 }
 
 CWathchDialog::~CWathchDialog()
@@ -69,6 +70,7 @@ BOOL CWathchDialog::OnInitDialog()
 	
 	// TODO:  在此添加额外的初始化
 	SetTimer(0, 50, NULL);
+	m_isFull = false;
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// 异常: OCX 属性页应返回 FALSE
 }
@@ -78,26 +80,26 @@ void CWathchDialog::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nIDEvent == 0) {
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		if (pParent->isFull()) {
+		CClientController* pParent = (CClientController*)GetParent();
+		if (m_isFull) {
 			CRect rect;
 			m_picture.GetWindowRect(rect);
+			CImage image;
+			pParent->GetImage(image);
 			//pParent->GetImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
 			if (m_nObjWidth == -1) {
-				m_nObjWidth = pParent->GetImage().GetWidth();
+				m_nObjWidth = image.GetWidth();
 			}
 			if (m_nObjHeight == -1) {
-				m_nObjHeight = pParent->GetImage().GetHeight();
+				m_nObjHeight = image.GetHeight();
 			}
-			pParent->GetImage().StretchBlt(m_picture.GetDC()->GetSafeHdc()
+			image.StretchBlt(m_picture.GetDC()->GetSafeHdc()
 				, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
 			m_picture.InvalidateRect(NULL);
-			pParent->GetImage().Destroy();
-			pParent->SetImageStatus();
+			image.Destroy();
+			m_isFull = false;
 		}
 	}
-	
-
 	CDialog::OnTimer(nIDEvent);
 }
 
@@ -112,8 +114,8 @@ void CWathchDialog::OnLButtonDblClk(UINT nFlags, CPoint point)
 		event.ptXY = remote;
 		event.nButton = 0;
 		event.nAction = 1;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnLButtonDblClk(nFlags, point);
 }
@@ -131,8 +133,8 @@ void CWathchDialog::OnLButtonDown(UINT nFlags, CPoint point)
 		event.ptXY = remote;
 		event.nButton = 0;
 		event.nAction = 2;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnLButtonDown(nFlags, point);
 }
@@ -149,8 +151,8 @@ void CWathchDialog::OnLButtonUp(UINT nFlags, CPoint point)
 		event.ptXY = remote;
 		event.nButton = 0;
 		event.nAction = 3;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnLButtonUp(nFlags, point);
 }
@@ -165,8 +167,8 @@ void CWathchDialog::OnRButtonDblClk(UINT nFlags, CPoint point)
 		event.ptXY = remote;
 		event.nButton = 1;
 		event.nAction = 1;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonDblClk(nFlags, point);
 }
@@ -182,8 +184,8 @@ void CWathchDialog::OnRButtonUp(UINT nFlags, CPoint point)
 		event.ptXY = remote;
 		event.nButton = 1;
 		event.nAction = 3;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonUp(nFlags, point);
 }
@@ -199,8 +201,8 @@ void CWathchDialog::OnRButtonDown(UINT nFlags, CPoint point)
 		event.ptXY = remote;
 		event.nButton = 1;
 		event.nAction = 2;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonDown(nFlags, point);
 }
@@ -216,8 +218,8 @@ void CWathchDialog::OnMouseMove(UINT nFlags, CPoint point)
 		event.ptXY = remote;
 		event.nButton = 8;
 		event.nAction = 0;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnMouseMove(nFlags, point);
 }
@@ -235,8 +237,8 @@ void CWathchDialog::OnStnClickedWatch()
 		event.ptXY = remote;
 		event.nButton = 0;
 		event.nAction = 0;
-		CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-		pParent->SendMessage(WM_SEND_PACKET, 5 << 1 | 1, (WPARAM) & event);
+		CClientController::getInstance()
+			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
 	}
 }
 
@@ -251,13 +253,13 @@ void CWathchDialog::OnOK()
 
 void CWathchDialog::OnBnClickedBtnLock()
 {
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 7 << 1 | 1);
+	CClientController::getInstance()
+		->SendCommandPacket(7);
 }
 
 
 void CWathchDialog::OnBnClickedBtnUnlock()
 {
-	CRemoteClientDlg* pParent = (CRemoteClientDlg*)GetParent();
-	pParent->SendMessage(WM_SEND_PACKET, 8 << 1 | 1);
+	CClientController::getInstance()
+		->SendCommandPacket(8);
 }

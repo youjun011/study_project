@@ -39,6 +39,9 @@ public:
 					listPacket.pop_front();
 				}
 			}
+			else {
+				AfxMessageBox(_T("DeadlCommand ´íÎó£¡£¡"));
+			}
 			CloseClient();
 		}
 		return 0;

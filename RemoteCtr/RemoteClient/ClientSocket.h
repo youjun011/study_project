@@ -82,7 +82,7 @@ public:
 	int Size() {
 		return nLength + 6;
 	}
-	const char* Data(std::string strOut)const {
+	const char* Data(std::string &strOut)const {
 		strOut.resize(nLength + 6);
 		BYTE* pData = (BYTE*)strOut.c_str();
 		*(WORD*)pData = sHead; pData += 2;
@@ -154,18 +154,19 @@ public:
 			AfxMessageBox(_T("connect 失败\n"));
 			return false;
 		}
+		TRACE(_T("连接成功！！\r\n"));
 		return true;
 	}
 
 #define BUFFER_SIZE 2048000
 	int DealCommand() {
 		if (m_sock == -1)return -1;
-		char* buffer = m_buffer.data();
+		char* buffer = m_buffer.data();//TODO:多线程发送命令时可能会出现冲突
 		//memset(buffer, 0, BUFFER_SIZE);不能清0
 		static size_t index = 0;	//index的值要保留；
 		while (true) {
 			size_t len = recv(m_sock, buffer + index, BUFFER_SIZE - index, 0);
-			if ((len <= 0) && (index == 0))return -1;
+			if (((int)len <= 0) && ((int)index == 0))return -1;
 			index += len;
 			len = index;
 			m_packet = CPacket((BYTE*)buffer, len);

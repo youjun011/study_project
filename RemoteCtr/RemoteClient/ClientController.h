@@ -176,7 +176,7 @@ private:
 	class CHelper {
 	public:
 		CHelper() {
-			getInstance();
+			//getInstance();
 		}
 		~CHelper() {
 			releaseInstance();

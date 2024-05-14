@@ -5,7 +5,7 @@
 //静态的，必须做实现:(构造的时候不能做初始化)
 std::map<UINT, CClientController::MSGFUNC>CClientController::m_mapFunc;
 CClientController* CClientController::m_instance = NULL;
-
+CClientController::CHelper CClientController::m_helper;
 CClientController* CClientController::getInstance()
 {
 	if (m_instance == nullptr) {
@@ -55,9 +55,9 @@ LRESULT CClientController::SendMessage(MSG msg)
 void CClientController::StartWatchScreen()
 {
 	m_isClosed = false;
-	CWathchDialog dlg(&m_remoteDlg);
+	//m_watchDlg.SetParent(&m_remoteDlg);
 	m_hThreadWatch = (HANDLE)_beginthread(CClientController::threadWatchScreenEntry, 0, this);
-	dlg.DoModal();	//会阻塞在这里
+	m_watchDlg.DoModal();	//会阻塞在这里
 	m_isClosed = true;
 	WaitForSingleObject(m_hThreadWatch, 500);
 }
@@ -66,11 +66,11 @@ void CClientController::threadWatchScreen()
 {
 	Sleep(50);
 	while (!m_isClosed) {
-		if (m_remoteDlg.isFull() == false) {
+		if (m_watchDlg.isFull() == false) {
 			int ret =SendCommandPacket(6);
 			if (ret == 6) {
 				if (GetImage(m_remoteDlg.GetImage()) == 0) {
-					m_remoteDlg.SetImageStatus(true);
+					m_watchDlg.SetImageStatus(true);
 				}
 			}
 			else {

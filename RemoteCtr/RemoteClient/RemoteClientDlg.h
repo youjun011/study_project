@@ -4,10 +4,9 @@
 
 #pragma once
 #include"ClientSocket.h"
-#include "StatusDlg.h"
-#include "WathchDialog.h"
+
 //#include "ClientController.h" //这里加上就报错!!!!!!!s
-#define WM_SEND_PACKET (WM_USER+1)	//发送数据包的消息
+//#define WM_SEND_PACKET (WM_USER+1)	//发送数据包的消息
 //int test = 1;
 // CRemoteClientDlg 对话框
 class CRemoteClientDlg : public CDialogEx
@@ -24,18 +23,11 @@ public:
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 public:
-	bool isFull()const {
-		return m_isFull;
-	}
 	CImage& GetImage() {
 		return m_image;
 	}
-	void SetImageStatus(bool isFull=false) {
-		m_isFull = isFull;
-	}
 private:
 	CImage m_image;//缓存
-	bool m_isFull;//缓存是否有数据
 private:
 	//static void threadEntryForWatch(void* arg);
 	//void threadWatchData();
@@ -50,7 +42,6 @@ private:
 // 实现
 protected: 
 	HICON m_hIcon;
-	CStatusDlg m_dlgStatus;
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
@@ -71,7 +62,7 @@ public:
 	afx_msg void OnDownFile();
 	afx_msg void OnDeleteFile();
 	afx_msg void OnRunFile();
-	afx_msg LRESULT OnSendPacket(WPARAM wParm, LPARAM lParam);
+	//afx_msg LRESULT OnSendPacket(WPARAM wParm, LPARAM lParam);
 	afx_msg void OnBnClickedBtnStartWatch();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnIpnFieldchangedIpaddressServ(NMHDR* pNMHDR, LRESULT* pResult);
