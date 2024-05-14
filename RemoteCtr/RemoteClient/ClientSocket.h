@@ -3,13 +3,15 @@
 #include "framework.h"
 #include<string>
 #include <vector>
+#include<list>
+#include<map>
 #pragma pack(push)
 #pragma pack(1)	//设置结构体、联合体和类成员的对齐方式为1字节对齐。
 
 class CPacket {
 public:
 	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
-	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
+	CPacket(WORD nCmd, const BYTE* pData, size_t nSize,HANDLE hEvent) {
 		sHead = 0xFEFF;
 		nLength = nSize + 4;
 		sCmd = nCmd;
@@ -25,6 +27,7 @@ public:
 		for (size_t j = 0; j < strData.size(); j++) {
 			sSum += BYTE(strData[j]) & 0xFF;
 		}
+		this->hEvent = hEvent;
 	}
 	CPacket(const CPacket& pack) {
 		sHead = pack.sHead;
@@ -32,8 +35,9 @@ public:
 		sCmd = pack.sCmd;
 		strData = pack.strData;
 		sSum = pack.sSum;
+		hEvent = pack.hEvent;
 	}
-	CPacket(const BYTE* pData, size_t& nSize) {
+	CPacket(const BYTE* pData, size_t& nSize):hEvent(INVALID_HANDLE_VALUE) {
 		size_t i = 0;
 		for (; i < nSize; i++) {
 			if (*(WORD*)(pData + i) == 0xFEFF) {
@@ -76,6 +80,7 @@ public:
 			sCmd = pack.sCmd;
 			strData = pack.strData;
 			sSum = pack.sSum;
+			hEvent = pack.hEvent;
 		}
 		return *this;
 	}
@@ -98,6 +103,7 @@ public:
 	WORD sCmd;//控制命令
 	std::string strData;//包数据，一个对象,传&仅仅会传一个地址，不是数据；
 	WORD sSum;	//和校验,只对strData求和
+	HANDLE hEvent;
 	//std::string strOut;
 };
 
@@ -214,6 +220,8 @@ public:
 		m_nPort = nPort;
 	}
 private:
+	std::list<CPacket>m_listSend;
+	std::map<HANDLE, std::list<CPacket>>m_mapAck;
 	int m_nIP;
 	int m_nPort;
 	std::vector<char>m_buffer;
@@ -241,8 +249,11 @@ private:
 	}
 	~CClientSocket() {
 		closesocket(m_sock);
+		m_sock = INVALID_SOCKET;
 		WSACleanup();
 	}
+	static void threadEntry(void* arg);
+	void threadFunc();
 	BOOL InitSockEnv() {
 		WSADATA data;
 		if (WSAStartup(MAKEWORD(1, 1), &data) != 0) {

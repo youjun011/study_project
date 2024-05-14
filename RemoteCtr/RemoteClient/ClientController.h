@@ -55,9 +55,11 @@ public:
 		BYTE* pData=NULL, 
 		size_t nLength=0) 
 	{
-		CPacket pack(nCmd, pData, nLength);
 		CClientSocket* pClient = CClientSocket::getInstance();
 		if (pClient->InitSocket() == false)return false;
+		HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		//TODO:不应该直接发送，而是投入队列
+		CPacket pack(nCmd, pData, nLength, hEvent);
 		pClient->Send(pack);
 		int cmd = DealCommand();
 		TRACE("ack: %d\r\t", cmd);
