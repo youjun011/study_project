@@ -11,8 +11,6 @@ CClientController* CClientController::getInstance()
 	if (m_instance == nullptr) {
 		m_instance = new CClientController();
 		struct { UINT nMsg; MSGFUNC func; }MsgFuncs[] = {
-			{WM_SEND_PACK,&OnSendPack},
-			{WM_SEND_DATA,&OnSendData},
 			{WM_SHOW_STATUS,&OnShowStatus},
 			{WM_SHOW_WATCH,&OnShowWatch},
 			{(UINT) - 1,NULL}
@@ -67,9 +65,11 @@ void CClientController::threadWatchScreen()
 	Sleep(50);
 	while (!m_isClosed) {
 		if (m_watchDlg.isFull() == false) {
-			int ret =SendCommandPacket(6);
+			std::list<CPacket>lstPacks;
+			int ret =SendCommandPacket(6,true,NULL,0,&lstPacks);
 			if (ret == 6) {
-				if (GetImage(m_remoteDlg.GetImage()) == 0) {
+;				if (CMyTool::Bytes2Image(m_remoteDlg.GetImage(), 
+	lstPacks.front().strData) == 0) {
 					m_watchDlg.SetImageStatus(true);
 				}
 			}
@@ -180,20 +180,6 @@ unsigned __stdcall CClientController::threadEntry(void* arg)
 	thiz->threadFunc();
 	_endthreadex(0);
 	return 0;
-}
-
-LRESULT CClientController::OnSendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
-{
-	CClientSocket* pClient = CClientSocket:: getInstance();
-	CPacket* pPacket = (CPacket*)wParam;
-	return pClient->Send(*pPacket);
-}
-
-LRESULT CClientController::OnSendData(UINT nMsg, WPARAM wParam, LPARAM lParam)
-{
-	CClientSocket* pClient = CClientSocket::getInstance();
-	char* pData = (char*)wParam;
-	return pClient->Send(pData,(int)lParam);
 }
 
 LRESULT CClientController::OnShowStatus(UINT nMsg, WPARAM wParam, LPARAM lParam)

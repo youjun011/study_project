@@ -184,15 +184,23 @@ public:
 		}
 		return -1;
 	}
-	bool Send(const char* pData, int nSize) {
-		if (m_sock == -1)return false;
-		return send(m_sock, pData, nSize, 0) > 0;
-	}
-	bool Send(const CPacket& pack) {
-		if (m_sock == -1)return false;
-		std::string strOut;
-		pack.Data(strOut);
-		return send(m_sock, strOut.c_str(), strOut.size(), 0) > 0;
+	
+	bool SendPacket(const CPacket& pack, std::list<CPacket>&listPacks) {
+		m_listSend.push_back(pack);
+		if (m_sock == INVALID_SOCKET) {
+			if (InitSocket() == false)return false;
+			_beginthread(&CClientSocket::threadEntry, 0, this);
+		}
+		WaitForSingleObject(pack.hEvent, INFINITE);
+		auto it= m_mapAck.find(pack.hEvent);
+		if (it != m_mapAck.end()) {
+			for (auto i = it->second.begin(); i != it->second.end(); i++) {
+				listPacks.push_back(*i);
+			}
+			return true;
+			m_mapAck.erase(it);
+		}
+		return false;
 	}
 	bool GetFilePath(std::string& strPath) {
 		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4)) {
@@ -216,8 +224,10 @@ public:
 		m_sock = INVALID_SOCKET;
 	}
 	void UpdateAddress(int nIP, int nPort) {
-		m_nIP = nIP;
-		m_nPort = nPort;
+		if ((m_nIP != nIP) || (m_nPort != nPort)) {
+			m_nIP = nIP;
+			m_nPort = nPort;
+		}
 	}
 private:
 	std::list<CPacket>m_listSend;
@@ -238,7 +248,8 @@ private:
 	}
 	CClientSocket():
 		m_nIP(INADDR_ANY),
-		m_nPort(0) 
+		m_nPort(0) ,
+		m_sock(INVALID_SOCKET)
 	{
 		if (InitSockEnv() == FALSE) {
 			MessageBox(NULL, _T("无法初始化套接字环境！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
@@ -269,7 +280,11 @@ private:
 			delete tem;
 		}
 	}
-
+	bool Send(const char* pData, int nSize) {
+		if (m_sock == -1)return false;
+		return send(m_sock, pData, nSize, 0) > 0;
+	}
+	bool Send(const CPacket& pack);
 
 	static CClientSocket* m_instance;
 	class CHelper {

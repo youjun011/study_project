@@ -7,8 +7,8 @@
 #include "ClientSocket.h"
 #include <map>
 #include "MyTool.h"
-#define WM_SEND_PACK (WM_USER+1)//发送包数据
-#define WM_SEND_DATA (WM_USER+2)//发送数据
+//#define WM_SEND_PACK (WM_USER+1)//发送包数据
+//#define WM_SEND_DATA (WM_USER+2)//发送数据
 #define WM_SHOW_STATUS (WM_USER+3)
 #define WM_SHOW_WATCH (WM_USER+4)
 #define WM_SEND_MESSAGE (WM_USER+5)
@@ -33,11 +33,7 @@ public:
 	void CloseSocket() {
 		CClientSocket::getInstance()->CloseSocket();
 	}
-	bool SendPacket(const CPacket& pack) {
-		CClientSocket* pClient = CClientSocket::getInstance();
-		if (pClient->InitSocket() == false)return false;
-		pClient->Send(pack);
-	}
+
 	//1 查看磁盘分区；
 	//2 查看指定目录下文件
 	//3 打开文件
@@ -53,19 +49,25 @@ public:
 		int nCmd,
 		bool bAutoClose=true, 
 		BYTE* pData=NULL, 
-		size_t nLength=0) 
+		size_t nLength=0,
+		std::list<CPacket>*plstPacks=NULL)
 	{
 		CClientSocket* pClient = CClientSocket::getInstance();
-		if (pClient->InitSocket() == false)return false;
 		HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		//TODO:不应该直接发送，而是投入队列
 		CPacket pack(nCmd, pData, nLength, hEvent);
-		pClient->Send(pack);
-		int cmd = DealCommand();
-		TRACE("ack: %d\r\t", cmd);
-		if (bAutoClose)
-			CloseSocket();
-		return cmd;
+		//应答结果包
+		std::list<CPacket> lstPacks;
+		if (plstPacks == NULL) {
+			plstPacks = &lstPacks;
+		}
+		pClient->SendPacket(pack, *plstPacks);
+		if (plstPacks->size() > 0) {
+			TRACE(_T("SendCommand 成功！！\r\n"));
+			return plstPacks->front().sCmd;
+		}
+		
+		return -1;
 	}
 
 	int GetImage(CImage& image) {
@@ -124,11 +126,6 @@ protected:
 			m_instance = NULL;
 		}
 	}
-
-	LRESULT OnSendPack(UINT nMsg, WPARAM wParam,
-		LPARAM lParam);
-	LRESULT OnSendData(UINT nMsg, WPARAM wParam,
-		LPARAM lParam);
 	LRESULT OnShowStatus(UINT nMsg, WPARAM wParam,
 		LPARAM lParam);
 	LRESULT OnShowWatch(UINT nMsg, WPARAM wParam,
