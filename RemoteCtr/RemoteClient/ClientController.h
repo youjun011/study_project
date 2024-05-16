@@ -61,7 +61,7 @@ public:
 		if (plstPacks == NULL) {
 			plstPacks = &lstPacks;
 		}
-		pClient->SendPacket(pack, *plstPacks);
+		pClient->SendPacket(pack, *plstPacks, bAutoClose);
 		CloseHandle(hEvent);
 		if (plstPacks->size() > 0) {
 			TRACE(_T("SendCommand ³É¹¦£¡£¡,cmd =%d\r\n"), plstPacks->front().sCmd);

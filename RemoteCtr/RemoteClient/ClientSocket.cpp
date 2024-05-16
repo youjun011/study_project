@@ -8,22 +8,20 @@ CClientSocket* CClientSocket::m_instance = NULL;//只能显示的初始化；
 CClientSocket::CHelper CClientSocket::m_helper;//显示初始化静态变量；
 CClientSocket* pclient = CClientSocket::getInstance();
 
-bool CClientSocket::SendPacket(const CPacket& pack, std::list<CPacket>& listPacks, bool isAutoClosed)
+bool CClientSocket::SendPacket(const CPacket& pack, 
+	std::list<CPacket>& listPacks, bool isAutoClosed)
 {
 	if (m_sock == INVALID_SOCKET) {
 		//if (InitSocket() == false)return false;
 		TRACE(_T("线程开启\r\n"));
-		_beginthread(&CClientSocket::threadEntry, 0, this);
+		_beginthread(&CClientSocket::threadEntry, 0, this);//注意多线程问题；
 	}
-	auto pr = m_mapAck.insert({ pack.hEvent,{} });
+	auto pr = m_mapAck.insert({ pack.hEvent,listPacks });
 	m_mapAutoClosed.insert({ pack.hEvent,isAutoClosed });
 	m_listSend.push_back(pack);
 	WaitForSingleObject(pack.hEvent, INFINITE);
 	auto it = m_mapAck.find(pack.hEvent);
 	if (it != m_mapAck.end()) {
-		for (auto i = it->second.begin(); i != it->second.end(); i++) {
-			listPacks.push_back(*i);
-		}
 		m_mapAck.erase(it);
 		return true;
 	}
@@ -53,29 +51,35 @@ void CClientSocket::threadFunc()
 				continue;
 			}
 			auto it = m_mapAck.find(head.hEvent);
-			auto it0 = m_mapAutoClosed.find(head.hEvent);
-			do {
-				int length = recv(m_sock, pBuffer + index, BUFFER_SIZE - index, 0);
-				if (length > 0 || index > 0) {
-					index += length;
-					size_t size = (size_t)index;
-					CPacket pack((BYTE*)pBuffer, size);
-					if (size > 0) {//TODO:对于文件夹信息获取，文件信息获取可能产生问题；
-						pack.hEvent = head.hEvent;
-						it->second.push_back(pack);
-						memmove(pBuffer, pBuffer + size, index - size);
-						index -= size;
-						if(it0->second)
-						SetEvent(head.hEvent);
+			if (it != m_mapAck.end()) {
+				auto it0 = m_mapAutoClosed.find(head.hEvent);
+				do {
+					int length = recv(m_sock, pBuffer + index, BUFFER_SIZE - index, 0);
+					if (length > 0 || index > 0) {
+						index += length;
+						size_t size = (size_t)index;
+						CPacket pack((BYTE*)pBuffer, size);
+						if (size > 0) {//TODO:对于文件夹信息获取，文件信息获取可能产生问题；
+							pack.hEvent = head.hEvent;
+							it->second.push_back(pack);
+							memmove(pBuffer, pBuffer + size, index - size);
+							index -= size;
+							if (it0->second)
+								SetEvent(head.hEvent);
+						}
 					}
-				}
-				else if (length <= 0 && index <= 0) {
-					CloseSocket();
-					SetEvent(head.hEvent);//等到服务器关闭之后，再通知事情完成
-				}
-			} while (it0->second == false);
+					else if (length <= 0 && index <= 0) {
+						CloseSocket();
+						SetEvent(head.hEvent);//等到服务器关闭之后，再通知事情完成
+						m_mapAutoClosed.erase(it0);
+						break;
+					}
+				} while (it0->second == false);
+			}
 			m_listSend.pop_front();
-			InitSocket();
+			if (InitSocket() == false) {
+				InitSocket();
+			}
 		}
 	}
 	CloseSocket();
