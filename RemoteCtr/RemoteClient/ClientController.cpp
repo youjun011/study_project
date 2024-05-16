@@ -47,6 +47,7 @@ LRESULT CClientController::SendMessage(MSG msg)
 		(WPARAM)&info
 		, (LPARAM)hEvent);
 	WaitForSingleObject(hEvent, INFINITE);
+	CloseHandle(hEvent);
 	return info.result;
 }
 
@@ -68,7 +69,7 @@ void CClientController::threadWatchScreen()
 			std::list<CPacket>lstPacks;
 			int ret =SendCommandPacket(6,true,NULL,0,&lstPacks);
 			if (ret == 6) {
-;				if (CMyTool::Bytes2Image(m_remoteDlg.GetImage(), 
+;				if (CMyTool::Bytes2Image(m_watchDlg.GetImage(), 
 	lstPacks.front().strData) == 0) {
 					m_watchDlg.SetImageStatus(true);
 				}
@@ -92,7 +93,7 @@ void CClientController::threadWatchScreenEntry(void* arg)
 
 void CClientController::threadDownloadFile()
 {
-	FILE* pfile = fopen(m_strLocal.GetString(), "wb+");
+	FILE* pfile = fopen(m_strLocal, "wb+");
 	if (pfile == NULL) {
 		AfxMessageBox("本地没有权限保存该文件，或者文件无法创建！！");
 		m_statusDlg.ShowWindow(SW_HIDE);

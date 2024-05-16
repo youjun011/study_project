@@ -62,22 +62,19 @@ public:
 			plstPacks = &lstPacks;
 		}
 		pClient->SendPacket(pack, *plstPacks);
+		CloseHandle(hEvent);
 		if (plstPacks->size() > 0) {
-			TRACE(_T("SendCommand 成功！！\r\n"));
+			TRACE(_T("SendCommand 成功！！,cmd =%d\r\n"), plstPacks->front().sCmd);
 			return plstPacks->front().sCmd;
 		}
 		
 		return -1;
 	}
 
-	int GetImage(CImage& image) {
-		CClientSocket* pClient = CClientSocket::getInstance();
-		return CMyTool::Bytes2Image(image, pClient->GetPacket().strData);
-	}
-
 	int DownFile(CString strPath) {
-		CFileDialog dlg(FALSE, "*", strPath,
-			OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY, NULL, &m_remoteDlg);
+		CFileDialog dlg(FALSE, NULL, strPath,
+			OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY, 
+			NULL, &m_remoteDlg);
 		if (dlg.DoModal() == IDOK) {
 			m_strRemote = strPath;
 			m_strLocal = dlg.GetPathName();

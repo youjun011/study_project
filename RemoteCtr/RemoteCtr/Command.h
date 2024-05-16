@@ -22,7 +22,7 @@ public:
         if (status > 0) {
             int ret = thiz->ExcuteCommand(status,listPacket,inPacket);
             if (ret != 0) {
-                TRACE(_T("执行命令失败：%d ret=%d\r\n",status, ret));
+                TRACE("执行命令失败：%d ret=%d\r\n",status, ret);
             }
         }
         else {
@@ -70,7 +70,7 @@ protected:
         //限制鼠标活动范围
         ShowCursor(false);
         //隐藏任务栏
-        ::ShowWindow(::FindWindowW(_T("Shell_TrayWnd"), NULL), SW_HIDE);
+        ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_HIDE);
         dlg.GetWindowRect(rect);
         ClipCursor(rect);   //限制鼠标活动范围；
         MSG msg;
@@ -88,7 +88,7 @@ protected:
         //恢复鼠标
         ShowCursor(true);
         //恢复任务栏
-        ::ShowWindow(::FindWindowW(_T("Shell_TrayWnd"), NULL), SW_SHOW);
+        ::ShowWindow(::FindWindow(_T("Shell_TrayWnd"), NULL), SW_SHOW);
         dlg.DestroyWindow();
     }
     int MakeDriverInfo(std::list<CPacket>& listPacket, CPacket& inPacket) {
@@ -118,7 +118,7 @@ protected:
             return -2;
         }
         _finddata_t fdata;
-        long long hfind = 0;
+        int hfind = 0;
         if ((hfind = _findfirst("*", &fdata)) == -1) {
             OutputDebugString(_T("没有找到任何文件！！"));
             FILEINFO finfo;
@@ -332,8 +332,12 @@ protected:
 
     int DeleteLocalFile(std::list<CPacket>& listPacket, CPacket& inPacket) {
         std::string strPath=inPacket.strData;
-        std::wstring wPath(strPath.begin(), strPath.end());
-        if (DeleteFile(wPath.c_str()) == 0) {
+        TCHAR sPath[MAX_PATH] = _T("");
+        //mbstowcs(sPath, strPath.c_str(), strPath.size()); //中文容易乱码
+        MultiByteToWideChar(
+            CP_ACP, 0, strPath.c_str(), strPath.size(), sPath,
+            sizeof(sPath) / sizeof(TCHAR));
+        if (DeleteFileA(strPath.c_str()) == 0) {
             AfxMessageBox(_T("删除文件失败！！"));
         }
         CPacket pack(9, NULL, 0);

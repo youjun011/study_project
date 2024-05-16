@@ -185,23 +185,8 @@ public:
 		return -1;
 	}
 	
-	bool SendPacket(const CPacket& pack, std::list<CPacket>&listPacks) {
-		m_listSend.push_back(pack);
-		if (m_sock == INVALID_SOCKET) {
-			if (InitSocket() == false)return false;
-			_beginthread(&CClientSocket::threadEntry, 0, this);
-		}
-		WaitForSingleObject(pack.hEvent, INFINITE);
-		auto it= m_mapAck.find(pack.hEvent);
-		if (it != m_mapAck.end()) {
-			for (auto i = it->second.begin(); i != it->second.end(); i++) {
-				listPacks.push_back(*i);
-			}
-			return true;
-			m_mapAck.erase(it);
-		}
-		return false;
-	}
+	bool SendPacket(const CPacket& pack, std::list<CPacket>& listPacks,
+		bool isAutoClosed = true);
 	bool GetFilePath(std::string& strPath) {
 		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4)) {
 			strPath = m_packet.strData;
@@ -230,8 +215,10 @@ public:
 		}
 	}
 private:
+	bool m_bAutoClose;
 	std::list<CPacket>m_listSend;
 	std::map<HANDLE, std::list<CPacket>>m_mapAck;
+	std::map<HANDLE, bool>m_mapAutoClosed;
 	int m_nIP;
 	int m_nPort;
 	std::vector<char>m_buffer;
@@ -242,6 +229,7 @@ private:
 	}
 	CClientSocket(const CClientSocket& ss)
 	{
+		m_bAutoClose = ss.m_bAutoClose;
 		m_sock = ss.m_sock;
 		m_nIP = ss.m_nIP;
 		m_nPort = ss.m_nPort;
@@ -249,7 +237,8 @@ private:
 	CClientSocket():
 		m_nIP(INADDR_ANY),
 		m_nPort(0) ,
-		m_sock(INVALID_SOCKET)
+		m_sock(INVALID_SOCKET),
+		m_bAutoClose(true)
 	{
 		if (InitSockEnv() == FALSE) {
 			MessageBox(NULL, _T("无法初始化套接字环境！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);

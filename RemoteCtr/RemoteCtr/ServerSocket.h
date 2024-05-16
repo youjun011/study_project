@@ -22,6 +22,7 @@ public:
 		m_arg = arg;
 		bool ret = InitSocket(port);
 		if (ret = false)return -1;
+		std::list<CPacket>listPacket;
 		int count = 0;
 		while (true) {
 			if (AcceptClient() == false) {
@@ -32,15 +33,11 @@ public:
 			}
 			int ret = DealCommand();
 			if (ret > 0) {
-				std::list<CPacket>listPacket;
 				m_callback(arg, ret, listPacket,m_packet);
 				while (listPacket.size() > 0) {
 					Send(listPacket.front());
 					listPacket.pop_front();
 				}
-			}
-			else {
-				AfxMessageBox(_T("DeadlCommand ´íÎó£¡£¡"));
 			}
 			CloseClient();
 		}
