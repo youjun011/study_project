@@ -5,6 +5,7 @@
 #include <vector>
 #include<list>
 #include<map>
+#include<mutex>
 #pragma pack(push)
 #pragma pack(1)	//设置结构体、联合体和类成员的对齐方式为1字节对齐。
 
@@ -142,27 +143,7 @@ public:
 		}
 		return m_instance;
 	}
-	bool InitSocket() {
-		if (m_sock != INVALID_SOCKET)CloseSocket();
-		m_sock = socket(PF_INET, SOCK_STREAM, 0);
-		if (m_sock == -1)return false;
-		sockaddr_in serv_adr;
-		memset(&serv_adr, 0, sizeof(serv_adr));
-		serv_adr.sin_family = AF_INET;
-		serv_adr.sin_addr.s_addr = htonl(m_nIP);
-		serv_adr.sin_port = htons(m_nPort);
-		if (serv_adr.sin_addr.s_addr == INADDR_NONE) {
-			AfxMessageBox(_T("指定IP地址，不存在"));
-			return false;
-		}
-		int ret = connect(m_sock,(sockaddr*)&serv_adr,sizeof(serv_adr));
-		if (ret == -1) {
-			AfxMessageBox(_T("connect 失败\n"));
-			return false;
-		}
-		TRACE(_T("连接成功！！\r\n"));
-		return true;
-	}
+	bool InitSocket();
 
 #define BUFFER_SIZE 2048000
 	int DealCommand() {
@@ -215,7 +196,9 @@ public:
 		}
 	}
 private:
+	HANDLE m_hThread;
 	bool m_bAutoClose;
+	std::mutex m_lock;
 	std::list<CPacket>m_listSend;
 	std::map<HANDLE, std::list<CPacket>&>m_mapAck;
 	std::map<HANDLE, bool>m_mapAutoClosed;
@@ -238,7 +221,8 @@ private:
 		m_nIP(INADDR_ANY),
 		m_nPort(0) ,
 		m_sock(INVALID_SOCKET),
-		m_bAutoClose(true)
+		m_bAutoClose(true),
+		m_hThread(INVALID_HANDLE_VALUE)
 	{
 		if (InitSockEnv() == FALSE) {
 			MessageBox(NULL, _T("无法初始化套接字环境！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
