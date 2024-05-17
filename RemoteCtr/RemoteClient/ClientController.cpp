@@ -67,7 +67,8 @@ void CClientController::threadWatchScreen()
 	while (!m_isClosed) {
 		if (m_watchDlg.isFull() == false) {
 			std::list<CPacket>lstPacks;
-			int ret =SendCommandPacket(6,true,NULL,0,&lstPacks);
+			int ret =SendCommandPacket(m_watchDlg.GetSafeHwnd(), 6, true, NULL, 0);
+			
 			if (ret == 6) {
 ;				if (CMyTool::Bytes2Image(m_watchDlg.GetImage(), 
 	lstPacks.front().strData) == 0) {
@@ -105,7 +106,7 @@ void CClientController::threadDownloadFile()
 	CClientSocket* pClient = CClientSocket::getInstance();
 	do {
 		//int ret = SendMessage(WM_SEND_PACKET, 4 << 1 | 0, (LPARAM)(LPCSTR)strFile);
-		int ret = SendCommandPacket(
+		int ret = SendCommandPacket(m_remoteDlg,
 			4, false, (BYTE*)(LPCSTR)m_strRemote, m_strRemote.GetLength());
 		if (ret < 0) {
 			AfxMessageBox(_T("Ö´ÐÐÏÂÔØÃüÁîÊ§°Ü£¡"));

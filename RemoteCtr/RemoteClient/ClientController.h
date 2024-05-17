@@ -45,30 +45,16 @@ public:
 	// 8 解锁
 	// 1981 测试连接
 	//返回值是命令号
-	int SendCommandPacket(
+	bool SendCommandPacket(
+		HWND hWnd,//数据包收到后需要应答的窗口
 		int nCmd,
 		bool bAutoClose=true, 
 		BYTE* pData=NULL, 
-		size_t nLength=0,
-		std::list<CPacket>*plstPacks=NULL)
+		size_t nLength=0)
 	{
 		CClientSocket* pClient = CClientSocket::getInstance();
-		HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-		//TODO:不应该直接发送，而是投入队列
-		CPacket pack(nCmd, pData, nLength, hEvent);
-		//应答结果包
-		std::list<CPacket> lstPacks;
-		if (plstPacks == NULL) {
-			plstPacks = &lstPacks;
-		}
-		pClient->SendPacket(pack, *plstPacks, bAutoClose);
-		CloseHandle(hEvent);
-		if (plstPacks->size() > 0) {
-			TRACE(_T("SendCommand 成功！！,cmd =%d\r\n"), plstPacks->front().sCmd);
-			return plstPacks->front().sCmd;
-		}
-		
-		return -1;
+		CPacket pack(nCmd, pData, nLength);
+		return pClient->SendPacket(hWnd, pack, bAutoClose);
 	}
 
 	int DownFile(CString strPath) {

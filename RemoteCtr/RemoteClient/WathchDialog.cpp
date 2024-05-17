@@ -111,7 +111,7 @@ void CWathchDialog::OnLButtonDblClk(UINT nFlags, CPoint point)
 		event.nButton = 0;
 		event.nAction = 1;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnLButtonDblClk(nFlags, point);
 }
@@ -130,7 +130,7 @@ void CWathchDialog::OnLButtonDown(UINT nFlags, CPoint point)
 		event.nButton = 0;
 		event.nAction = 2;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnLButtonDown(nFlags, point);
 }
@@ -148,7 +148,7 @@ void CWathchDialog::OnLButtonUp(UINT nFlags, CPoint point)
 		event.nButton = 0;
 		event.nAction = 3;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnLButtonUp(nFlags, point);
 }
@@ -164,7 +164,7 @@ void CWathchDialog::OnRButtonDblClk(UINT nFlags, CPoint point)
 		event.nButton = 1;
 		event.nAction = 1;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonDblClk(nFlags, point);
 }
@@ -181,7 +181,7 @@ void CWathchDialog::OnRButtonUp(UINT nFlags, CPoint point)
 		event.nButton = 1;
 		event.nAction = 3;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonUp(nFlags, point);
 }
@@ -198,7 +198,7 @@ void CWathchDialog::OnRButtonDown(UINT nFlags, CPoint point)
 		event.nButton = 1;
 		event.nAction = 2;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnRButtonDown(nFlags, point);
 }
@@ -215,7 +215,7 @@ void CWathchDialog::OnMouseMove(UINT nFlags, CPoint point)
 		event.nButton = 8;
 		event.nAction = 0;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 	CDialog::OnMouseMove(nFlags, point);
 }
@@ -234,7 +234,7 @@ void CWathchDialog::OnStnClickedWatch()
 		event.nButton = 0;
 		event.nAction = 0;
 		CClientController::getInstance()
-			->SendCommandPacket(5, true, (BYTE*)&event, sizeof(event));
+			->SendCommandPacket(GetSafeHwnd(),5, true, (BYTE*)&event, sizeof(event));
 	}
 }
 
@@ -250,12 +250,12 @@ void CWathchDialog::OnOK()
 void CWathchDialog::OnBnClickedBtnLock()
 {
 	CClientController::getInstance()
-		->SendCommandPacket(7);
+		->SendCommandPacket(GetSafeHwnd(),7);
 }
 
 
 void CWathchDialog::OnBnClickedBtnUnlock()
 {
 	CClientController::getInstance()
-		->SendCommandPacket(8);
+		->SendCommandPacket(GetSafeHwnd(),8);
 }

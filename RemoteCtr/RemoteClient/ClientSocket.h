@@ -7,13 +7,14 @@
 #include<map>
 #include<mutex>
 #define WM_SEND_PACK (WM_USER+1)//发送包数据
+#define WM_SEND_PACK_ACK (WM_USER+2)
 #pragma pack(push)
 #pragma pack(1)	//设置结构体、联合体和类成员的对齐方式为1字节对齐。
 
 class CPacket {
 public:
 	CPacket() :sHead(0), nLength(0), sCmd(0), sSum(0) {}
-	CPacket(WORD nCmd, const BYTE* pData, size_t nSize,HANDLE hEvent) {
+	CPacket(WORD nCmd, const BYTE* pData, size_t nSize) {
 		sHead = 0xFEFF;
 		nLength = nSize + 4;
 		sCmd = nCmd;
@@ -29,7 +30,6 @@ public:
 		for (size_t j = 0; j < strData.size(); j++) {
 			sSum += BYTE(strData[j]) & 0xFF;
 		}
-		this->hEvent = hEvent;
 	}
 	CPacket(const CPacket& pack) {
 		sHead = pack.sHead;
@@ -37,9 +37,8 @@ public:
 		sCmd = pack.sCmd;
 		strData = pack.strData;
 		sSum = pack.sSum;
-		hEvent = pack.hEvent;
 	}
-	CPacket(const BYTE* pData, size_t& nSize):hEvent(INVALID_HANDLE_VALUE) {
+	CPacket(const BYTE* pData, size_t& nSize) {
 		size_t i = 0;
 		for (; i < nSize; i++) {
 			if (*(WORD*)(pData + i) == 0xFEFF) {
@@ -82,7 +81,6 @@ public:
 			sCmd = pack.sCmd;
 			strData = pack.strData;
 			sSum = pack.sSum;
-			hEvent = pack.hEvent;
 		}
 		return *this;
 	}
@@ -105,7 +103,6 @@ public:
 	WORD sCmd;//控制命令
 	std::string strData;//包数据，一个对象,传&仅仅会传一个地址，不是数据；
 	WORD sSum;	//和校验,只对strData求和
-	HANDLE hEvent;
 	//std::string strOut;
 };
 
@@ -135,6 +132,31 @@ typedef struct file_info {
 	char szFileName[256];//文件名
 }FILEINFO, * PFILEINFO;
 
+enum {
+	CSM_AUTOCLOSE=1,//自动关闭模式
+};
+
+typedef struct PacketData{
+	std::string strData;
+	UINT nMode;
+	PacketData(const char* pData, size_t nLen, UINT mode) {
+		strData.resize(nLen);
+		memcpy((char*)strData.c_str(), pData, nLen);
+		nMode = mode;
+	}
+	PacketData(const PacketData& data) {
+		strData = data.strData;
+		nMode = data.nMode;
+	}
+	PacketData& operator=(const PacketData& data) {
+		if (this != &data) {
+			strData = data.strData;
+			nMode = data.nMode;
+		}
+		return *this;
+	}
+}PACKET_DATA;
+
 class CClientSocket
 {
 public:
@@ -146,7 +168,7 @@ public:
 	}
 	bool InitSocket();
 
-#define BUFFER_SIZE 2048000
+#define BUFFER_SIZE 4096000
 	int DealCommand() {
 		if (m_sock == -1)return -1;
 		char* buffer = m_buffer.data();//TODO:多线程发送命令时可能会出现冲突
@@ -167,8 +189,7 @@ public:
 		return -1;
 	}
 	
-	bool SendPacket(const CPacket& pack, std::list<CPacket>& listPacks,
-		bool isAutoClosed = true);
+	bool SendPacket(HWND hWnd, const CPacket& pack, bool isAutoClosed = true);
 	bool GetFilePath(std::string& strPath) {
 		if ((m_packet.sCmd >= 2) && (m_packet.sCmd <= 4)) {
 			strPath = m_packet.strData;
@@ -197,6 +218,7 @@ public:
 		}
 	}
 private:
+	UINT m_nThreadID;
 	typedef void(CClientSocket::* MSGFUNC)(UINT
 		nMsg, WPARAM wParam, LPARAM lParam);
 	std::map<UINT, MSGFUNC>m_mapFunc;
@@ -214,47 +236,17 @@ private:
 	CClientSocket& operator=(const CClientSocket& ss) {
 
 	}
-	CClientSocket(const CClientSocket& ss)
-	{
-		m_hThread = ss.m_hThread;
-		m_bAutoClose = ss.m_bAutoClose;
-		m_sock = ss.m_sock;
-		m_nIP = ss.m_nIP;
-		m_nPort = ss.m_nPort;
-	}
-	CClientSocket():
-		m_nIP(INADDR_ANY),
-		m_nPort(0) ,
-		m_sock(INVALID_SOCKET),
-		m_bAutoClose(true),
-		m_hThread(INVALID_HANDLE_VALUE)
-	{
-		if (InitSockEnv() == FALSE) {
-			MessageBox(NULL, _T("无法初始化套接字环境！"), _T("初始化错误！"), MB_OK | MB_ICONERROR);
-			exit(0);
-		}
-		m_buffer.resize(BUFFER_SIZE);
-		memset(m_buffer.data(), 0, BUFFER_SIZE);
-		struct { UINT message; MSGFUNC func; }funcs[] = {
-			{WM_SEND_PACK,&CClientSocket::SendPack},
-			//{WM_SHOW_WATCH,&OnShowWatch},
-			{0,NULL}
-		};
-		for (int i = 0; funcs[i].message != 0; i++) {
-			if (m_mapFunc.insert({ funcs[i].message,
-				funcs[i].func }).second == false) {
-				TRACE("插入失败，消息值： %d 函数值：%08X\r\n",
-					funcs[i].message, funcs[i].func);
-			}
-		}
-	}
+	CClientSocket(const CClientSocket& ss);
+	
+	CClientSocket();
+
 	~CClientSocket() {
 		closesocket(m_sock);
 		m_sock = INVALID_SOCKET;
 		WSACleanup();
 	}
-	static void threadEntry(void* arg);
-	void threadFunc();
+	static unsigned __stdcall threadEntry(void* arg);
+	//void threadFunc();
 	void threadFunc2();
 	BOOL InitSockEnv() {
 		WSADATA data;
