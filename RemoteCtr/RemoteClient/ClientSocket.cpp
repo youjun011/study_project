@@ -103,13 +103,19 @@ void CClientSocket::threadFunc()
 					else if (length <= 0 && index <= 0) {
 						CloseSocket();
 						SetEvent(head.hEvent);//等到服务器关闭之后，再通知事情完成
-						m_mapAutoClosed.erase(it0);
+						if (it0 != m_mapAutoClosed.end()) {
+							
+						}
+						else {
+							TRACE("异常的情况，没有对应的pair\r\n");
+						}
 						break;
 					}
 				} while (it0->second == false);
 			}
 			m_lock.lock();
 			m_listSend.pop_front();
+			m_mapAutoClosed.erase(head.hEvent);
 			m_lock.unlock();
 			if (InitSocket() == false) {
 				InitSocket();
@@ -120,10 +126,41 @@ void CClientSocket::threadFunc()
 	CloseSocket();
 }
 
+void CClientSocket::threadFunc2()
+{
+	MSG msg;
+	while (::GetMessage(&msg, NULL, 0, 0)) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+		if (m_mapFunc.find(msg.message) != m_mapFunc.end()) {
+			(this->*m_mapFunc[msg.message])(msg.message, msg.wParam, msg.lParam);
+	
+		}
+	}
+}
+
 bool CClientSocket::Send(const CPacket& pack)
 {
 	if (m_sock == -1)return false;
 	std::string strOut;
 	pack.Data(strOut);
 	return send(m_sock, strOut.c_str(), strOut.size(), 0) > 0;
+}
+
+void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (InitSocket() == true) {
+		int ret = send(m_sock, (char*)wParam, (int)lParam, 0);
+		if (ret > 0) {
+
+		}
+		else {
+			CloseSocket();
+		}
+	}
+	else {
+		//
+	}
+	
+	//TODO:
 }

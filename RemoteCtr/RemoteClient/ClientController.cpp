@@ -170,8 +170,6 @@ void CClientController::threadFunc()
 				(this->*it->second)(msg.message, msg.wParam, msg.lParam);
 			}
 		}
-		
-
     }
 }
 

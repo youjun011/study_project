@@ -52,7 +52,8 @@ CPoint CWathchDialog::UserPoint2RemoteScreenPoint(CPoint& point,bool isScreen)
 {
 	
 	CRect clientRect;
-	if (isScreen)ScreenToClient(&point);	//全局坐标到客户区坐标；
+	if (!isScreen)ClientToScreen(&point);	//转换为屏幕左上角的坐标(屏幕内的绝对坐标)
+	m_picture.ScreenToClient(&point);	//全局坐标到客户区坐标；
 	//本地到远程坐标
 	m_picture.GetWindowRect(clientRect);
 	int width0 = clientRect.Width();
