@@ -51,6 +51,13 @@ LRESULT CClientController::SendMessage(MSG msg)
 	return info.result;
 }
 
+void CClientController::DownloadEnd()
+{
+	m_statusDlg.ShowWindow(SW_HIDE);
+	m_remoteDlg.EndWaitCursor();
+	m_remoteDlg.MessageBox(_T("下载完成！！"), _T("完成！"));
+}
+
 void CClientController::StartWatchScreen()
 {
 	m_isClosed = false;
@@ -107,13 +114,8 @@ void CClientController::threadDownloadFile()
 	do {
 		//int ret = SendMessage(WM_SEND_PACKET, 4 << 1 | 0, (LPARAM)(LPCSTR)strFile);
 		int ret = SendCommandPacket(m_remoteDlg,
-			4, false, (BYTE*)(LPCSTR)m_strRemote, m_strRemote.GetLength());
-		if (ret < 0) {
-			AfxMessageBox(_T("执行下载命令失败！"));
-			TRACE("执行下载命令失败:ret = %d\r\n", ret);
-			break;
-		}
-
+			4, false, (BYTE*)(LPCSTR)m_strRemote,
+			m_strRemote.GetLength(), (WPARAM)pfile);
 		long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
 		if (nLength == 0) {
 			AfxMessageBox("文件长度为零或者无法读取文件！！");

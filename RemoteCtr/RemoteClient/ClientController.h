@@ -50,13 +50,14 @@ public:
 		int nCmd,
 		bool bAutoClose=true, 
 		BYTE* pData=NULL, 
-		size_t nLength=0)
+		size_t nLength=0,
+		WPARAM wParam=0)
 	{
 		CClientSocket* pClient = CClientSocket::getInstance();
 		CPacket pack(nCmd, pData, nLength);
-		return pClient->SendPacket(hWnd, pack, bAutoClose);
+		return pClient->SendPacket(hWnd, pack, bAutoClose, wParam);
 	}
-
+	void DownloadEnd();
 	int DownFile(CString strPath) {
 		CFileDialog dlg(FALSE, NULL, strPath,
 			OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY, 
@@ -64,10 +65,19 @@ public:
 		if (dlg.DoModal() == IDOK) {
 			m_strRemote = strPath;
 			m_strLocal = dlg.GetPathName();
-			m_nThreadDownload = (HANDLE)_beginthread(&CClientController::threadDownloadEntry, 0, this);
-			if (WaitForSingleObject(m_nThreadDownload, 0) != WAIT_TIMEOUT) {
+			FILE* pfile = fopen(m_strLocal, "wb+");
+			if (pfile == NULL) {
+				AfxMessageBox("本地没有权限保存该文件，或者文件无法创建！！");
 				return -1;
 			}
+			int ret = SendCommandPacket(m_remoteDlg,
+				4, false, (BYTE*)(LPCSTR)m_strRemote,
+				m_strRemote.GetLength(), (WPARAM)pfile);
+			TRACE("%s\r\n", LPCSTR(m_strRemote));
+			/*m_nThreadDownload = (HANDLE)_beginthread(&CClientController::threadDownloadEntry, 0, this);
+			if (WaitForSingleObject(m_nThreadDownload, 0) != WAIT_TIMEOUT) {
+				return -1;
+			}*/
 			m_remoteDlg.BeginWaitCursor();
 			m_statusDlg.m_info.SetWindowText(_T("命令正在执行中！！"));
 			m_statusDlg.ShowWindow(SW_SHOW);

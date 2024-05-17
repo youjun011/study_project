@@ -42,6 +42,7 @@ BEGIN_MESSAGE_MAP(CWathchDialog, CDialog)
 	ON_STN_CLICKED(IDC_WATCH, &CWathchDialog::OnStnClickedWatch)
 	ON_BN_CLICKED(IDC_BTN_LOCK, &CWathchDialog::OnBnClickedBtnLock)
 	ON_BN_CLICKED(IDC_BTN_UNLOCK, &CWathchDialog::OnBnClickedBtnUnlock)
+	ON_MESSAGE(WM_SEND_PACK_ACK,&CWathchDialog::OnSendPackAck)
 END_MESSAGE_MAP()
 
 
@@ -70,7 +71,7 @@ BOOL CWathchDialog::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	// TODO:  在此添加额外的初始化
-	SetTimer(0, 50, NULL);
+	//SetTimer(0, 50, NULL);
 	m_isFull = false;
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// 异常: OCX 属性页应返回 FALSE
@@ -81,22 +82,64 @@ void CWathchDialog::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nIDEvent == 0) {
-		CClientController* pParent = (CClientController*)GetParent();
-		if (m_isFull) {
-			CRect rect;
-			m_picture.GetWindowRect(rect);
-			//pParent->GetImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
-				m_nObjWidth = m_image.GetWidth();
-				m_nObjHeight = m_image.GetHeight();
-			m_image.StretchBlt(m_picture.GetDC()->GetSafeHdc()
-				, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
-			m_picture.InvalidateRect(NULL);
-			m_image.Destroy();
-			m_isFull = false;
-			TRACE(_T("获取图片成功!!\r\n"));
-		}
+		//CClientController* pParent = (CClientController*)GetParent();
+		//if (m_isFull) {
+		//	CRect rect;
+		//	m_picture.GetWindowRect(rect);
+		//	//pParent->GetImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
+		//		m_nObjWidth = m_image.GetWidth();
+		//		m_nObjHeight = m_image.GetHeight();
+		//	m_image.StretchBlt(m_picture.GetDC()->GetSafeHdc()
+		//		, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
+		//	m_picture.InvalidateRect(NULL);
+		//	m_image.Destroy();
+		//	m_isFull = false;
+		//	TRACE(_T("获取图片成功!!\r\n"));
+		//}
 	}
 	CDialog::OnTimer(nIDEvent);
+}
+
+LRESULT CWathchDialog::OnSendPackAck(WPARAM wParam, LPARAM lParam)
+{
+	if (lParam ==-1||lParam==-2) {
+
+	}
+	else if (lParam == 1) {
+		//对方关闭套接字
+	}
+	else {
+		CPacket* pPacket = (CPacket*)wParam;
+		if (pPacket != nullptr) {
+			switch (pPacket->sCmd)
+			{
+			case 6:
+			{
+				if (m_isFull) {
+					CMyTool::Bytes2Image(m_image, pPacket->strData);
+					CRect rect;
+					m_picture.GetWindowRect(rect);
+					//pParent->GetImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
+					m_nObjWidth = m_image.GetWidth();
+					m_nObjHeight = m_image.GetHeight();
+					m_image.StretchBlt(m_picture.GetDC()->GetSafeHdc()
+						, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
+					m_picture.InvalidateRect(NULL);
+					m_image.Destroy();
+					m_isFull = false;
+					TRACE(_T("获取图片成功!!\r\n"));
+				}
+				break;
+			}
+			case 5:
+			case 7:
+			case 8:
+			default:
+				break;
+			}
+		}
+	}
+	return 0;
 }
 
 
