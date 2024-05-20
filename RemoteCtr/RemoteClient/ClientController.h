@@ -55,7 +55,8 @@ public:
 	{
 		CClientSocket* pClient = CClientSocket::getInstance();
 		CPacket pack(nCmd, pData, nLength);
-		return pClient->SendPacket(hWnd, pack, bAutoClose, wParam);
+		bool ret = pClient->SendPacket(hWnd, pack, bAutoClose, wParam);
+		return ret;
 	}
 	void DownloadEnd();
 	int DownFile(CString strPath) {

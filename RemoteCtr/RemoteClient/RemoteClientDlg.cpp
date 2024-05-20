@@ -398,10 +398,10 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 		//对方关闭套接字
 	}
 	else {
-		CPacket* pPacket = (CPacket*)wParam;
-		if (pPacket != nullptr) {
-			CPacket& head = *pPacket;
-			switch (pPacket->sCmd)
+		if (wParam != NULL) {
+			CPacket head = *(CPacket*)wParam;
+			delete (CPacket*)wParam;
+			switch (head.sCmd)
 			{
 			case 1://获取驱动信息
 			{
@@ -447,7 +447,7 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 			{
 				static long long nLength = 0, index = 0;
 				if (nLength == 0) {
-					nLength = *(long long*)pPacket->strData.c_str();
+					nLength = *(long long*)head.strData.c_str();
 					if (nLength == 0) {
 						AfxMessageBox("文件长度为零或者无法读取文件！！");
 						CClientController::getInstance()->DownloadEnd();

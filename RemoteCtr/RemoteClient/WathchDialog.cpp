@@ -137,6 +137,7 @@ LRESULT CWathchDialog::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 			default:
 				break;
 			}
+			delete pPacket;
 		}
 	}
 	return 0;
