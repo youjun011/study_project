@@ -17,7 +17,7 @@ CClientSocket::CClientSocket(const CClientSocket&ss) {
 	m_nPort = ss.m_nPort;
 	auto it = ss.m_mapFunc.begin();
 	for (; it != ss.m_mapFunc.end(); it++) {
-		m_mapFunc.insert({ it->first,it->second });
+		m_mapFunc.insert({ it->first,it->second }); 
 	}
 }
 
