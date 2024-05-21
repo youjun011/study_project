@@ -38,19 +38,6 @@ int CClientController::Invoke(CWnd* pMainWnd)
 	return m_remoteDlg.DoModal();
 }
 
-LRESULT CClientController::SendMessage(MSG msg)
-{
-	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	if (hEvent == NULL)return -2;
-	MSGINFO info(msg);
-	PostThreadMessage(m_nThreadID, WM_SEND_MESSAGE,
-		(WPARAM)&info
-		, (LPARAM)hEvent);
-	WaitForSingleObject(hEvent, INFINITE);
-	CloseHandle(hEvent);
-	return info.result;
-}
-
 void CClientController::DownloadEnd()
 {
 	m_statusDlg.ShowWindow(SW_HIDE);
@@ -82,7 +69,6 @@ void CClientController::threadWatchScreen()
 				6, true, NULL, 0);
 			if (ret == 1) {
 				//TRACE("成功发送请求命令！\r\n");
-				
 			}
 			else {
 				TRACE("获取图片失败！\r\n");
@@ -96,54 +82,6 @@ void CClientController::threadWatchScreenEntry(void* arg)
 {
 	CClientController* thiz = (CClientController*)arg;
 	thiz->threadWatchScreen();
-	_endthread();
-}
-
-void CClientController::threadDownloadFile()
-{
-	FILE* pfile = fopen(m_strLocal, "wb+");
-	if (pfile == NULL) {
-		AfxMessageBox("本地没有权限保存该文件，或者文件无法创建！！");
-		m_statusDlg.ShowWindow(SW_HIDE);
-		m_remoteDlg.EndWaitCursor();
-		return;
-	}
-
-	TRACE("%s\r\n", LPCSTR(m_strRemote));
-	CClientSocket* pClient = CClientSocket::getInstance();
-	do {
-		//int ret = SendMessage(WM_SEND_PACKET, 4 << 1 | 0, (LPARAM)(LPCSTR)strFile);
-		int ret = SendCommandPacket(m_remoteDlg,
-			4, false, (BYTE*)(LPCSTR)m_strRemote,
-			m_strRemote.GetLength(), (WPARAM)pfile);
-		long long nLength = *(long long*)pClient->GetPacket().strData.c_str();
-		if (nLength == 0) {
-			AfxMessageBox("文件长度为零或者无法读取文件！！");
-			break;
-		}
-		long long nCount = 0;
-		while (nCount < nLength) {
-			ret = pClient->DealCommand();
-			if (ret < 0) {
-				AfxMessageBox("传输失败！！");
-				TRACE("传输失败:ret = %d\r\n", ret);
-				break;
-			}
-			nCount += pClient->GetPacket().strData.size();
-			fwrite(pClient->GetPacket().strData.c_str(), 1, pClient->GetPacket().strData.size(), pfile);
-		}
-	} while (false);
-	fclose(pfile);
-	pClient->CloseSocket();
-	m_statusDlg.ShowWindow(SW_HIDE);
-	m_remoteDlg.EndWaitCursor();
-	m_remoteDlg.MessageBox(_T("下载完成！！"), _T("完成！"));
-}
-
-void __cdecl CClientController::threadDownloadEntry(void* arg)
-{
-	CClientController* thiz = (CClientController*)arg;
-	thiz->threadDownloadFile();
 	_endthread();
 }
 

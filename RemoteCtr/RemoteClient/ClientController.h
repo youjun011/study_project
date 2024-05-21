@@ -22,7 +22,6 @@ public:
 	//启动
 	int Invoke(CWnd* pMainWnd);
 	//发送消息
-	LRESULT SendMessage(MSG msg);
 	//更新网络服务器的地址
 	void UpdateAddress(int nIP, int nPort) {
 		CClientSocket::getInstance()->UpdateAddress(nIP, nPort);
@@ -89,15 +88,12 @@ public:
 protected:
 	void threadWatchScreen();
 	static void threadWatchScreenEntry(void* arg);
-	void threadDownloadFile();
-	static void __cdecl threadDownloadEntry(void* arg);
 
 	CClientController():
 		m_statusDlg(&m_remoteDlg),
 		m_watchDlg(&m_remoteDlg)
 	{
 		m_hThread = INVALID_HANDLE_VALUE;
-		m_nThreadDownload = INVALID_HANDLE_VALUE;
 		m_hThreadWatch = INVALID_HANDLE_VALUE;
 		m_nThreadID = -1;
 		m_isClosed = true;
@@ -152,7 +148,6 @@ private:
 	CWathchDialog m_watchDlg;
 	CStatusDlg m_statusDlg;
 	HANDLE m_hThread;
-	HANDLE m_nThreadDownload;
 	HANDLE m_hThreadWatch;
 	bool m_isClosed;//监控是否关闭；
 

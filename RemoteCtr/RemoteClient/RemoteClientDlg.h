@@ -26,10 +26,12 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 public:
 private:
-	//static void threadEntryForWatch(void* arg);
-	//void threadWatchData();
-	//static void threadEntryForDownFile(void* arg);//静态函数不能用this指针
-	//void threadDownFile();
+	void DealCommand(WORD nCmd, const std::string& strData, LPARAM lParam);
+	void InitUIData();
+	void Str2Three(const std::string&driver,CTreeCtrl&tree);
+	void UpdataFileInfo(const FILEINFO& finfo, HTREEITEM hParent);
+	void UpdataDownloadFile(const std::string&strData,FILE*pFile);
+
 	void LoadFileCurrent();
 	void LoadFileInfo();
 	CString GetPath(HTREEITEM hTree);
