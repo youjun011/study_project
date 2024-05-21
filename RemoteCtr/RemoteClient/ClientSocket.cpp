@@ -216,6 +216,8 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 	PACKET_DATA data = *(PACKET_DATA*)wParam;
 	delete (PACKET_DATA*)wParam;
 	HWND hWnd = (HWND)lParam;
+
+
 	if (InitSocket() == true) {
 		int ret = send(m_sock, (char*)data.strData.c_str(), 
 			(int)data.strData.size(), 0);
@@ -231,15 +233,16 @@ void CClientSocket::SendPack(UINT nMsg, WPARAM wParam, LPARAM lParam)
 					size_t nLen = index;
 					CPacket pack((BYTE*)pBuffer, nLen);
 					if (nLen > 0) {
+						TRACE("ack pack %d to hWnd %08X\r\n", pack.sCmd, hWnd);
 						::SendMessage(hWnd, WM_SEND_PACK_ACK,
 							(WPARAM)new CPacket(pack), data.wParam);
 						if (data.nMode & CSM_AUTOCLOSE) {
 							CloseSocket();
 							return;
 						}
+						memmove(pBuffer, pBuffer + nLen, index - nLen);
+						index -= nLen;
 					}
-					memmove(pBuffer, pBuffer + nLen, index - nLen);
-					index -= nLen;
 				}
 				else {
 					CloseSocket();

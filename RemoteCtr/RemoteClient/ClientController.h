@@ -75,18 +75,12 @@ public:
 				4, false, (BYTE*)(LPCSTR)m_strRemote,
 				m_strRemote.GetLength(), (WPARAM)pfile);
 			TRACE("%s\r\n", LPCSTR(m_strRemote));
-			/*m_nThreadDownload = (HANDLE)_beginthread(&CClientController::threadDownloadEntry, 0, this);
-			if (WaitForSingleObject(m_nThreadDownload, 0) != WAIT_TIMEOUT) {
-				return -1;
-			}*/
 			m_remoteDlg.BeginWaitCursor();
 			m_statusDlg.m_info.SetWindowText(_T("命令正在执行中！！"));
 			m_statusDlg.ShowWindow(SW_SHOW);
 			m_statusDlg.CenterWindow(&m_remoteDlg);
 			m_statusDlg.SetActiveWindow();
 		}
-		
-		
 		return 0;
 	}
 

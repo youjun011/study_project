@@ -237,23 +237,7 @@ void CRemoteClientDlg::LoadFileInfo()
 	SendCommandPacket(GetSafeHwnd(),2, false,
 		(BYTE*)strPath.GetString(),
 		strPath.GetLength(),(WPARAM)hTreeSelected);
-	if (lstPackets.size() > 0) {
-		std::list<CPacket>::iterator it = lstPackets.begin();
-		for (; it != lstPackets.end(); it++) {
-			PFILEINFO pInfo = (PFILEINFO)(*it).strData.c_str();
-			if (pInfo->hasNext == FALSE)continue;
-			if (pInfo->IsDirectory) {
-				if (CString(pInfo->szFileName) == "." || (CString(pInfo->szFileName) == "..")) {
-					continue;
-				}
-				HTREEITEM hTmp = m_Tree.InsertItem(pInfo->szFileName, hTreeSelected, TVI_LAST);
-				m_Tree.InsertItem("", hTmp, TVI_LAST);
-			}
-			else {
-				m_List.InsertItem(0, pInfo->szFileName);
-			}
-		}
-	}
+	
 }
 
 CString CRemoteClientDlg::GetPath(HTREEITEM hTree) {
@@ -434,6 +418,7 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 					HTREEITEM hTmp = m_Tree.InsertItem(pInfo->szFileName,
 						(HTREEITEM)lParam, TVI_LAST);
 					m_Tree.InsertItem("", hTmp, TVI_LAST);
+					m_Tree.Expand((HTREEITEM)lParam, TVE_EXPAND);
 				}
 				else {
 					m_List.InsertItem(0, pInfo->szFileName);
@@ -458,11 +443,17 @@ LRESULT CRemoteClientDlg::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 					fclose((FILE*)lParam);
 					nLength = 0; index = 0;
 					CClientController::getInstance()->DownloadEnd();
+
 				}
 				else {
 					FILE* pFile = (FILE*)lParam;
 					fwrite(head.strData.c_str(), 1, head.strData.size(), pFile);
 					index += head.strData.size();
+					if (index >= nLength) {
+						fclose((FILE*)lParam);
+						nLength = 0; index = 0;
+						CClientController::getInstance()->DownloadEnd();
+					}
 				}	
 			}
 			break;
