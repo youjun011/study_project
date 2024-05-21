@@ -71,24 +71,24 @@ void CClientController::StartWatchScreen()
 void CClientController::threadWatchScreen()
 {
 	Sleep(50);
+	ULONGLONG nTick = GetTickCount64();
 	while (!m_isClosed) {
 		if (m_watchDlg.isFull() == false) {
-			std::list<CPacket>lstPacks;
-			int ret =SendCommandPacket(m_watchDlg.GetSafeHwnd(), 6, true, NULL, 0);
-			
-			if (ret == 6) {
-;				if (CMyTool::Bytes2Image(m_watchDlg.GetImage(), 
-	lstPacks.front().strData) == 0) {
-					m_watchDlg.SetImageStatus(true);
-				}
+			if (GetTickCount64() - nTick < 200) {
+				Sleep(200 - DWORD(GetTickCount64() - nTick));
+			}
+			nTick = GetTickCount64();
+			int ret =SendCommandPacket(m_watchDlg.GetSafeHwnd(), 
+				6, true, NULL, 0);
+			if (ret == 1) {
+				//TRACE("成功发送请求命令！\r\n");
+				
 			}
 			else {
 				TRACE("获取图片失败！\r\n");
 			}
 		}
-		else {
-			Sleep(1);
-		}
+		Sleep(1);
 	}
 }
 

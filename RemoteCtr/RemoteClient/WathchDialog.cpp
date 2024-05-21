@@ -109,26 +109,26 @@ LRESULT CWathchDialog::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 		//对方关闭套接字
 	}
 	else {
-		CPacket* pPacket = (CPacket*)wParam;
-		if (pPacket != nullptr) {
-			switch (pPacket->sCmd)
+		//CPacket* pPacket = (CPacket*)wParam;
+		if (wParam!=NULL) {
+			CPacket head = *(CPacket*)wParam;
+			delete (CPacket*)wParam;
+			switch (head.sCmd)
 			{
 			case 6:
 			{
-				if (m_isFull) {
-					CMyTool::Bytes2Image(m_image, pPacket->strData);
-					CRect rect;
-					m_picture.GetWindowRect(rect);
-					//pParent->GetImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
-					m_nObjWidth = m_image.GetWidth();
-					m_nObjHeight = m_image.GetHeight();
-					m_image.StretchBlt(m_picture.GetDC()->GetSafeHdc()
-						, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
-					m_picture.InvalidateRect(NULL);
-					m_image.Destroy();
-					m_isFull = false;
-					TRACE(_T("获取图片成功!!\r\n"));
-				}
+				CMyTool::Bytes2Image(m_image, head.strData);
+				CRect rect;
+				m_picture.GetWindowRect(rect);
+				//pParent->GetImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);
+				m_nObjWidth = m_image.GetWidth();
+				m_nObjHeight = m_image.GetHeight();
+				m_image.StretchBlt(m_picture.GetDC()->GetSafeHdc()
+					, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
+				m_picture.InvalidateRect(NULL);
+				m_image.Destroy();
+				m_isFull = false;
+				TRACE(_T("获取图片成功!!\r\n"));
 				break;
 			}
 			case 5:
@@ -137,7 +137,6 @@ LRESULT CWathchDialog::OnSendPackAck(WPARAM wParam, LPARAM lParam)
 			default:
 				break;
 			}
-			delete pPacket;
 		}
 	}
 	return 0;
