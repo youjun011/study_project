@@ -11,9 +11,9 @@ typedef void(*SOCKET_CALLBACK)(void* arg, int status,
 class CServerSocket
 {
 public:
-	static CServerSocket* getInstance() {
+	static CServerSocket* getInstance() {//单例模式，构造在main函数之前，析构在main函数之后；
 		if (m_instance == NULL) {
-			m_instance = new CServerSocket();
+			m_instance = new CServerSocket();//多线程编程问题
 		}
 		return m_instance;
 	}
@@ -146,8 +146,8 @@ private:
 	}
 
 	static void releaseInstance() {
-		if (m_instance != NULL) {
-			CServerSocket* tem = m_instance;
+		if (m_instance != NULL) {//防御型编程;
+			CServerSocket* tem = m_instance;	//这里为了防止delete析构时会有人调用m_instance;
 			m_instance = NULL;
 			delete tem;
 		}
