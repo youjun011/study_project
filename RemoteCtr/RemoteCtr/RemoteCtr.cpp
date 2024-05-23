@@ -83,12 +83,17 @@ void ChooseAutoInvoke() {
 
 void ShowError() {
     LPWSTR lpMessageBuf = NULL;
-    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-        NULL,GetLastError(),
-        MAKELANGID(LANG_NEUTRAL,SUBLANG_DEFAULT),
-        lpMessageBuf,0,NULL);
-    OutputDebugString(lpMessageBuf);
-    LocalFree(lpMessageBuf);
+    DWORD dw = GetLastError(); // 获取最后的错误码
+    if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+        NULL, dw,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPWSTR)&lpMessageBuf, 0, NULL)) {
+        OutputDebugString(lpMessageBuf); // 输出错误消息到调试器
+        LocalFree(lpMessageBuf); // 释放分配的缓冲区
+    }
+    else {
+        OutputDebugString(L"Failed to format error message."); // FormatMessage 失败时的处理
+    }
 }
 
 bool IsAdmin() {
@@ -112,15 +117,53 @@ bool IsAdmin() {
     return false;
 }
 
+void RunAsAdmin() {
+    //TODO:获取管理员权限、使用该权限创建进程
+    HANDLE hToken = NULL;
+    BOOL ret = LogonUser(L"Administrator", NULL, NULL, LOGON32_LOGON_BATCH,
+        LOGON32_PROVIDER_DEFAULT, &hToken);
+    if (!ret) {
+        ShowError();
+        MessageBox(NULL, _T("登录错误！"), _T("程序错误"), 0);
+        exit(0);
+    }
+    OutputDebugString(L"Logon administrator sucess!\r\n");
+    STARTUPINFO si = { 0 };
+    PROCESS_INFORMATION pi = { 0 };
+    TCHAR sPath[MAX_PATH] = _T("");
+    GetCurrentDirectory(MAX_PATH, sPath);
+    CString strCmd = sPath;
+    strCmd += _T("\\RemoteCtrl.exe");
+   /* ret = CreateProcessWithTokenW(hToken, LOGON_WITH_PROFILE, NULL, (LPWSTR)strCmd.GetBuffer(),
+        CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);*/
+    ret = CreateProcessWithLogonW(_T("Administrator"), NULL, NULL,
+        LOGON_WITH_PROFILE, NULL, (LPWSTR)strCmd.GetBuffer(),
+        CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
+    CloseHandle(hToken);
+    if (!ret) {
+        ShowError();
+        MessageBox(NULL, _T("进程创建失败！"), _T("程序错误"), 0);
+        exit(0);
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+}
+
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
+    int nRetCode = 0;
     if (IsAdmin()) {
         OutputDebugString(L"current is run as administrator!\r\n");
+        //MessageBox(NULL, _T("管理员"), _T("用户状态"), 0);
     }
     else {
         OutputDebugString(L"current is run as normal user!\r\n");
+        RunAsAdmin();
+        //MessageBox(NULL, _T("普通用户"), _T("用户状态"), 0);
+        return nRetCode;
     }
-    int nRetCode = 0;
+    
     //test1
     HMODULE hModule = ::GetModuleHandle(nullptr);
 
