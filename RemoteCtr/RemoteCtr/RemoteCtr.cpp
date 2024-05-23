@@ -81,8 +81,45 @@ void ChooseAutoInvoke() {
     return;
 }
 
+void ShowError() {
+    LPWSTR lpMessageBuf = NULL;
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+        NULL,GetLastError(),
+        MAKELANGID(LANG_NEUTRAL,SUBLANG_DEFAULT),
+        lpMessageBuf,0,NULL);
+    OutputDebugString(lpMessageBuf);
+    LocalFree(lpMessageBuf);
+}
+
+bool IsAdmin() {
+    HANDLE hToken = NULL;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+    {
+        ShowError();
+        return false;
+    }
+    TOKEN_ELEVATION eve;
+    DWORD len = 0;
+    if (GetTokenInformation(hToken, TokenElevation, &eve, sizeof(eve), &len) == FALSE) {
+        ShowError();
+        return false;
+    }
+    CloseHandle(hToken);
+    if (len == sizeof(eve)) {
+        return eve.TokenIsElevated;
+    }
+    OutputDebugString(L"length of tokeninformation is\r\n");
+    return false;
+}
+
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
+    if (IsAdmin()) {
+        OutputDebugString(L"current is run as administrator!\r\n");
+    }
+    else {
+        OutputDebugString(L"current is run as normal user!\r\n");
+    }
     int nRetCode = 0;
     //test1
     HMODULE hModule = ::GetModuleHandle(nullptr);
@@ -99,7 +136,7 @@ int main()  //extern声明的全局变量，在main函数之前实现；
         else
         {
             CCommand cmd;
-            ChooseAutoInvoke();
+            //ChooseAutoInvoke();
             CServerSocket* pserver = CServerSocket::getInstance();
             int ret = pserver->Run(&CCommand::RunCommand, &cmd);
             switch (ret)
