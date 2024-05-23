@@ -7,6 +7,7 @@
 #include "ServerSocket.h"
 #include "MyTool.h"
 #include "Command.h"
+#include <conio.h>
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -43,12 +44,112 @@ bool ChooseAutoInvoke(const CString&strPath) {
     return true;
 }
 
+#define IOCP_LIST_PUSH 1
+#define IOCP_LIST_POP 2
 
+enum
+{
+    IocpListPush,
+    IocpListPop,
+    IocpListEmpty
+};
+
+typedef struct IocpParam {
+    int nOperator;
+    std::string strData;
+    _beginthread_proc_type cbFunc;
+    IocpParam(int op, const char* sData, _beginthread_proc_type cb=NULL) {
+        nOperator = op;
+        strData = sData;
+        cbFunc = cb;
+    }
+    IocpParam() {
+        nOperator = -1;
+    }
+}IOCP_PARAM;
+
+void threadQueueEntry(HANDLE hIOCP) {
+    DWORD dwTransferred = 0;
+    ULONG_PTR CompletionKet = 0;
+    OVERLAPPED* pOverlapped = NULL;
+    std::list<std::string>lstString;
+    while (GetQueuedCompletionStatus(hIOCP,
+        &dwTransferred, &CompletionKet, &pOverlapped, INFINITE)) {
+        if ((dwTransferred == 0) || (CompletionKet == NULL)) {
+            printf("thread is prepare to exit!\r\n");
+            break;
+        }
+        IOCP_PARAM* pParam = (IOCP_PARAM*)CompletionKet;
+        if (pParam->nOperator == IocpListPush) {
+            lstString.push_back(pParam->strData);
+        }
+        else if (pParam->nOperator == IocpListPop) {
+            std::string* pStr = NULL;
+            if (lstString.size() > 0) {
+                pStr = new std::string(lstString.front());
+                lstString.pop_front();
+            }
+            if (pParam->cbFunc) {
+                pParam->cbFunc(pStr);
+            }
+        }
+        else if (pParam->nOperator == IocpListEmpty) {
+            lstString.clear();
+        }
+        delete pParam;
+    }
+    _endthread();
+}
+
+void func(void* arg)
+{
+    std::string* pstr = (std::string*)arg;
+    if (pstr != NULL) {
+        printf("pop from list:%s\r\n", pstr->c_str());
+        delete pstr;
+    }
+    else {
+        printf("list is empty, no data");
+    }
+}
 
 
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
+    if (!CMyTool::Init())return 1;
+
+    printf("press any ket to exit ...\r\n");
+    HANDLE hIOCP = INVALID_HANDLE_VALUE;
+
+    hIOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, 1);
+    HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
     
+    ULONGLONG tick = GetTickCount64();
+    while (_kbhit() != 0) {
+        if (GetTickCount64() - tick > 1300) {
+            PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
+                (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello!"),
+                NULL);
+        }
+        if (GetTickCount64() - tick > 2000) {
+            PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
+                (ULONG_PTR)new IOCP_PARAM(IocpListPush, "hello!"),
+                NULL);
+            tick = GetTickCount64();
+        }
+        Sleep(1);
+    }
+
+    if (hIOCP != NULL) {
+        PostQueuedCompletionStatus(hIOCP, 0, NULL, NULL);
+        WaitForSingleObject(hThread, INFINITE);
+    }
+    CloseHandle(hIOCP);
+    printf("exit done!\r\n");
+    exit(0);
+
+
+    /*
     if (CMyTool::IsAdmin()) {
         OutputDebugString(L"current is run as administrator!\r\n");
         if (!CMyTool::Init())return 1;
@@ -75,4 +176,5 @@ int main()  //extern声明的全局变量，在main函数之前实现；
         }
     }
     return 0;
+    */
 }

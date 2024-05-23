@@ -103,7 +103,7 @@ public:
             return false;
         }
         HKEY hKey = NULL;
-        int ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, strSubKey, 0,
+        ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, strSubKey, 0,
             KEY_ALL_ACCESS | KEY_WOW64_64KEY, &hKey);
         if (ret != ERROR_SUCCESS) {
             RegCloseKey(hKey);
@@ -111,7 +111,7 @@ public:
                 _T("´íÎó"), MB_ICONERROR | MB_TOPMOST);
             return false;
         }
-        CString strPath = CString(_T("C:\\Windows\\SysWOW64\\RemoteCtrl.exe"));
+        //CString strPath = CString(_T("C:\\Windows\\SysWOW64\\RemoteCtrl.exe"));
         ret = RegSetValueEx(hKey, _T("RemoteCtrl"), 0,
             REG_SZ, (BYTE*)(LPCTSTR)strPath, strPath.GetLength() * sizeof(TCHAR));
         if (ret != ERROR_SUCCESS) {
