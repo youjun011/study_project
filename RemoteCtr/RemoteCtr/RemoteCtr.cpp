@@ -89,6 +89,7 @@ void ShowError() {
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPWSTR)&lpMessageBuf, 0, NULL)) {
         OutputDebugString(lpMessageBuf); // 输出错误消息到调试器
+        //MessageBox(NULL, lpMessageBuf, _T("进程创建失败"), 0);
         LocalFree(lpMessageBuf); // 释放分配的缓冲区
     }
     else {
@@ -133,7 +134,7 @@ void RunAsAdmin() {
     TCHAR sPath[MAX_PATH] = _T("");
     GetCurrentDirectory(MAX_PATH, sPath);
     CString strCmd = sPath;
-    strCmd += _T("\\RemoteCtrl.exe");
+    strCmd += _T("\\RemoteCtr.exe");//注意名字错误
    /* ret = CreateProcessWithTokenW(hToken, LOGON_WITH_PROFILE, NULL, (LPWSTR)strCmd.GetBuffer(),
         CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);*/
     ret = CreateProcessWithLogonW(_T("Administrator"), NULL, NULL,
@@ -142,7 +143,7 @@ void RunAsAdmin() {
     CloseHandle(hToken);
     if (!ret) {
         ShowError();
-        MessageBox(NULL, _T("进程创建失败！"), _T("程序错误"), 0);
+        MessageBox(NULL, strCmd, _T("进程创建失败"), 0);
         exit(0);
     }
     WaitForSingleObject(pi.hProcess, INFINITE);
