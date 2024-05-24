@@ -68,11 +68,11 @@ typedef struct IocpParam {
     }
 }IOCP_PARAM;
 
-void threadQueueEntry(HANDLE hIOCP) {
+void threadmain(HANDLE hIOCP) {
     DWORD dwTransferred = 0;
     ULONG_PTR CompletionKet = 0;
     OVERLAPPED* pOverlapped = NULL;
-    std::list<std::string>lstString;
+    std::list<std::string>lstString;    //会内存泄漏
     while (GetQueuedCompletionStatus(hIOCP,
         &dwTransferred, &CompletionKet, &pOverlapped, INFINITE)) {
         if ((dwTransferred == 0) || (CompletionKet == NULL)) {
@@ -84,13 +84,13 @@ void threadQueueEntry(HANDLE hIOCP) {
             lstString.push_back(pParam->strData);
         }
         else if (pParam->nOperator == IocpListPop) {
-            std::string* pStr = NULL;
+            std::string str;
             if (lstString.size() > 0) {
-                pStr = new std::string(lstString.front());
+                str = lstString.front();
                 lstString.pop_front();
             }
             if (pParam->cbFunc) {
-                pParam->cbFunc(pStr);
+                pParam->cbFunc(&str);
             }
         }
         else if (pParam->nOperator == IocpListEmpty) {
@@ -98,7 +98,13 @@ void threadQueueEntry(HANDLE hIOCP) {
         }
         delete pParam;
     }
-    _endthread();
+}
+
+
+void threadQueueEntry(HANDLE hIOCP) {
+    threadmain(hIOCP);  //必须用一个函数，不然会导致局部变量无法释放
+    //lstString.clear();
+    _endthread(); //这里不会返回，直接结束  //代码到此为止，会导致本地对象无法调用析构，从而导致内存泄漏；
 }
 
 void func(void* arg)
@@ -106,16 +112,16 @@ void func(void* arg)
     std::string* pstr = (std::string*)arg;
     if (pstr != NULL) {
         printf("pop from list:%s\r\n", pstr->c_str());
-        delete pstr;
     }
     else {
-        printf("list is empty, no data");
+        printf("list is empty, no data\r\n");
     }
 }
 
 
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
+
     if (!CMyTool::Init())return 1;
 
     printf("press any ket to exit ...\r\n");
@@ -125,11 +131,13 @@ int main()  //extern声明的全局变量，在main函数之前实现；
     HANDLE hThread = (HANDLE)_beginthread(threadQueueEntry, 0, hIOCP);
     
     ULONGLONG tick = GetTickCount64();
-    while (_kbhit() != 0) {
-        if (GetTickCount64() - tick > 1300) {
+    ULONGLONG tick0 = GetTickCount64();
+    while (_kbhit() == 0) {
+        if (GetTickCount64() - tick0 > 1300) {
             PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
-                (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello!"),
+                (ULONG_PTR)new IOCP_PARAM(IocpListPop, "hello!", func),
                 NULL);
+            tick0 = GetTickCount64();
         }
         if (GetTickCount64() - tick > 2000) {
             PostQueuedCompletionStatus(hIOCP, sizeof(IOCP_PARAM),
