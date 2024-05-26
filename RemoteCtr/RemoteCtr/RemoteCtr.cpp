@@ -119,34 +119,71 @@ void func(void* arg)
     }
 }
 
+void threadMain() {
+    ULONGLONG tick = GetTickCount64();
+    std::list<std::string> lstData;
+    while (GetTickCount64() - tick < 1000) {
+        lstData.push_back("hello");
+    }
+    printf("lstData size :%d\r\n", lstData.size());
+}
+
+void  threadEntry(void* arg) {
+
+    threadMain();
+    _endthread();
+}
+
+void test() {
+    printf("press any ket to exit ...\r\n");
+    ULONGLONG tick = GetTickCount64();
+    ULONGLONG tick0 = GetTickCount64(), total = GetTickCount64();
+    CEdoyunQueue<std::string>lstStrings;
+    while (GetTickCount64()-total<=1000) {
+        //if (GetTickCount64() - tick0 > 12) {
+            lstStrings.PushBack("hello");
+            tick0 = GetTickCount64();
+        //}
+        //if (GetTickCount64() - tick > 20) {
+        //    std::string str;
+        //    lstStrings.PopFront(str);
+        //    tick = GetTickCount64();
+        //    //printf("pop from queue:%s\r\n", str.c_str());
+        //}
+        //Sleep(1);
+    }
+    printf("list size :%d\r\n", lstStrings.Size());
+    total = GetTickCount64();
+    while (GetTickCount64() - total <= 1000) {
+       
+            std::string str;
+            lstStrings.PopFront(str);
+            tick = GetTickCount64();
+            //printf("pop from queue:%s\r\n", str.c_str());
+    }
+    printf("list size :%d\r\n", lstStrings.Size());
+
+    total = GetTickCount64();
+    std::list<std::string> lstData;
+    while (GetTickCount64() - total <= 1000) {
+        lstData.push_back("hello");
+    }
+    printf("lstData size :%d\r\n", lstData.size());
+
+    HANDLE thread1 = (HANDLE)_beginthread(threadEntry, 0, NULL);
+    WaitForSingleObject(thread1, INFINITE);
+}
 
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
 
     if (!CMyTool::Init())return 1;
-
-    printf("press any ket to exit ...\r\n");
-    ULONGLONG tick = GetTickCount64();
-    ULONGLONG tick0 = GetTickCount64();
-    CEdoyunQueue<std::string>lstStrings;
-    while (_kbhit() == 0) {
-        if (GetTickCount64() - tick0 > 1300) {
-            lstStrings.PushBack("hello");
-            tick0 = GetTickCount64();
-        }
-        if (GetTickCount64() - tick > 2000) {
-            std::string str;
-            lstStrings.PopFront(str);
-            tick = GetTickCount64();
-            printf("pop from queue:%s\r\n", str.c_str());
-        }
-        Sleep(1);
+    for (int i = 0; i < 10; i++) {
+        test();
+        //printf("press any ket to exit ...\r\n");
     }
-    printf("list size :%d\r\n", lstStrings.Size());
-    lstStrings.Clear();
-    printf("list size :%d\r\n", lstStrings.Size());
-    printf("exit done!\r\n");
-    exit(0);
+    //exit(0);  调用时不会调用析构
+    return 0;
 
 
     /*
