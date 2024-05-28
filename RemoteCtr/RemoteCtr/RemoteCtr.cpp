@@ -9,6 +9,8 @@
 #include "Command.h"
 #include <conio.h>
 #include "CEdoyunQueue.h"
+#include <MSWSock.h>
+#include "EdoyunServer.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -45,146 +47,26 @@ bool ChooseAutoInvoke(const CString&strPath) {
     return true;
 }
 
-#define IOCP_LIST_PUSH 1
-#define IOCP_LIST_POP 2
-
-enum
-{
-    IocpListPush,
-    IocpListPop,
-    IocpListEmpty
+class COverlapped {
+public:
+    OVERLAPPED  m_overlapped;
+    DWORD m_operator;
+    char m_buff[4096];
+    COverlapped() {
+        m_operator = 0;
+        memset(&m_overlapped, 0, sizeof(m_overlapped));
+        memset(m_buff, 0, sizeof(m_buff));
+    }
 };
 
-typedef struct IocpParam {
-    int nOperator;
-    std::string strData;
-    _beginthread_proc_type cbFunc;
-    IocpParam(int op, const char* sData, _beginthread_proc_type cb=NULL) {
-        nOperator = op;
-        strData = sData;
-        cbFunc = cb;
-    }
-    IocpParam() {
-        nOperator = -1;
-    }
-}IOCP_PARAM;
-
-void threadmain(HANDLE hIOCP) {
-    DWORD dwTransferred = 0;
-    ULONG_PTR CompletionKet = 0;
-    OVERLAPPED* pOverlapped = NULL;
-    std::list<std::string>lstString;    //会内存泄漏
-    while (GetQueuedCompletionStatus(hIOCP,
-        &dwTransferred, &CompletionKet, &pOverlapped, INFINITE)) {
-        if ((dwTransferred == 0) || (CompletionKet == NULL)) {
-            printf("thread is prepare to exit!\r\n");
-            break;
-        }
-        IOCP_PARAM* pParam = (IOCP_PARAM*)CompletionKet;
-        if (pParam->nOperator == IocpListPush) {
-            lstString.push_back(pParam->strData);
-        }
-        else if (pParam->nOperator == IocpListPop) {
-            std::string str;
-            if (lstString.size() > 0) {
-                str = lstString.front();
-                lstString.pop_front();
-            }
-            if (pParam->cbFunc) {
-                pParam->cbFunc(&str);
-            }
-        }
-        else if (pParam->nOperator == IocpListEmpty) {
-            lstString.clear();
-        }
-        delete pParam;
-    }
-}
-
-
-void threadQueueEntry(HANDLE hIOCP) {
-    threadmain(hIOCP);  //必须用一个函数，不然会导致局部变量无法释放
-    //lstString.clear();
-    _endthread(); //这里不会返回，直接结束  //代码到此为止，会导致本地对象无法调用析构，从而导致内存泄漏；
-}
-
-void func(void* arg)
-{
-    std::string* pstr = (std::string*)arg;
-    if (pstr != NULL) {
-        printf("pop from list:%s\r\n", pstr->c_str());
-    }
-    else {
-        printf("list is empty, no data\r\n");
-    }
-}
-
-void threadMain() {
-    ULONGLONG tick = GetTickCount64();
-    std::list<std::string> lstData;
-    while (GetTickCount64() - tick < 1000) {
-        lstData.push_back("hello");
-    }
-    printf("lstData size :%d\r\n", lstData.size());
-}
-
-void  threadEntry(void* arg) {
-
-    threadMain();
-    _endthread();
-}
-
-void test() {
-    printf("press any ket to exit ...\r\n");
-    ULONGLONG tick = GetTickCount64();
-    ULONGLONG tick0 = GetTickCount64(), total = GetTickCount64();
-    CEdoyunQueue<std::string>lstStrings;
-    while (GetTickCount64()-total<=1000) {
-        //if (GetTickCount64() - tick0 > 12) {
-            lstStrings.PushBack("hello");
-            tick0 = GetTickCount64();
-        //}
-        //if (GetTickCount64() - tick > 20) {
-        //    std::string str;
-        //    lstStrings.PopFront(str);
-        //    tick = GetTickCount64();
-        //    //printf("pop from queue:%s\r\n", str.c_str());
-        //}
-        //Sleep(1);
-    }
-    printf("list size :%d\r\n", lstStrings.Size());
-    total = GetTickCount64();
-    while (GetTickCount64() - total <= 1000) {
-       
-            std::string str;
-            lstStrings.PopFront(str);
-            tick = GetTickCount64();
-            //printf("pop from queue:%s\r\n", str.c_str());
-    }
-    printf("list size :%d\r\n", lstStrings.Size());
-
-    total = GetTickCount64();
-    std::list<std::string> lstData;
-    while (GetTickCount64() - total <= 1000) {
-        lstData.push_back("hello");
-    }
-    printf("lstData size :%d\r\n", lstData.size());
-
-    HANDLE thread1 = (HANDLE)_beginthread(threadEntry, 0, NULL);
-    WaitForSingleObject(thread1, INFINITE);
-}
+void iocp();
 
 int main()  //extern声明的全局变量，在main函数之前实现；
 {
 
     if (!CMyTool::Init())return 1;
-    for (int i = 0; i < 10; i++) {
-        test();
-        //printf("press any ket to exit ...\r\n");
-    }
-    //exit(0);  调用时不会调用析构
-    return 0;
-
+    
+    iocp();
 
     /*
     if (CMyTool::IsAdmin()) {
@@ -214,4 +96,11 @@ int main()  //extern声明的全局变量，在main函数之前实现；
     }
     return 0;
     */
+    return 0;
+}
+
+void iocp() {
+    EdoyunServer server;
+    server.StartService();
+    getchar();
 }
