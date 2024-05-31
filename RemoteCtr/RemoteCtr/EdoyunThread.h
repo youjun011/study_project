@@ -9,7 +9,7 @@ typedef int (ThreadFuncBase::* FUNCTYPE)();
 class ThreadWorker {
 public:
 	ThreadWorker():thiz(NULL),func(NULL){}
-	ThreadWorker(ThreadFuncBase* obj, FUNCTYPE f) :thiz(obj),func(f) {}
+	ThreadWorker(void* obj, FUNCTYPE f) :thiz((ThreadFuncBase*)obj),func(f) {}
 	ThreadWorker(const ThreadWorker&worker){
 		thiz = worker.thiz;
 		func = worker.func;
@@ -107,7 +107,9 @@ private:
 					OutputDebugString(str);
 				}
 				if (ret < 0) {
+					::ThreadWorker* pWorker = m_worker.load();
 					m_worker.store(NULL);
+					delete pWorker;
 				}
 			}
 			else {
