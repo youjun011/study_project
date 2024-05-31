@@ -40,6 +40,7 @@ class EdoyunThread
 public:
 	EdoyunThread() {
 		m_hThread = NULL;
+		m_bStatus = false;
 	}
 	~EdoyunThread(){
 		Stop();
@@ -59,7 +60,10 @@ public:
 	bool Stop() {
 		if (m_bStatus == false)return true;
 		m_bStatus = false;
-		bool ret = WaitForSingleObject(m_hThread, INFINITE) == WAIT_OBJECT_0;
+		DWORD ret = WaitForSingleObject(m_hThread, INFINITE);
+		if (ret == WAIT_TIMEOUT) {
+			TerminateThread(m_hThread, -1);
+		}
 		if (m_worker.load() != NULL) {
 			::ThreadWorker* pWorker = m_worker.load();
 			m_worker.store(NULL);
@@ -69,24 +73,31 @@ public:
 	}
 
 	void UpdateWorker(const ::ThreadWorker& worker=::ThreadWorker()) {
-		if (!worker.IsValid()) {
-			m_worker.store(NULL);
-			return;
-		}
-		if (m_worker.load() != NULL) {
+		if (m_worker.load() != NULL&&(m_worker.load()!=&worker)) {
 			::ThreadWorker* pWorker = m_worker.load();
 			m_worker.store(NULL);
 			delete pWorker;
 		}
+		if (m_worker.load() == &worker)return;
+		if (!worker.IsValid()) {
+			m_worker.store(NULL);
+			return;
+		}
+		
 		m_worker.store(new ::ThreadWorker(worker));
 	}
 	//true表示空闲 false表示已经分配了工作
 	bool IsIdle() {
+		if (m_worker.load() == NULL)return true;
 		return !m_worker.load()->IsValid();
 	}
 private:
 	void ThreadWorker() {
 		while (m_bStatus) {
+			if (m_worker.load() == NULL) {
+				Sleep(1);
+				continue;
+			}
 			::ThreadWorker worker = *m_worker.load();
 			if (worker.IsValid()) {
 				int ret = worker();
@@ -130,6 +141,10 @@ public:
 	EdoyunThreadPool(){}
 	~EdoyunThreadPool(){
 		Stop();
+		for (size_t i = 0; i < m_threads.size(); i++) {
+			delete m_threads[i];
+			m_threads[i] = NULL;
+		}
 		m_threads.clear();
 	}
 	bool Invoke() {
