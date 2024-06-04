@@ -106,6 +106,7 @@ LPOVERLAPPED EdoyunClient::SendOverlapped()
 int EdoyunClient::Recv()
 {
     int ret = recv(m_sock, m_buffer.data() + m_used, m_buffer.size() - m_used, 0);
+    TRACE("recv : %d\r\n",ret);
     if (ret <= 0)return -1;
     m_used += (size_t)ret;
     CMyTool::Dump((BYTE*)m_buffer.data(), ret);
