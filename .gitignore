@@ -4,3 +4,14 @@
 /RemoteCtr/x64
 /RemoteCtr/RemoteCtr/x64
 /RemoteCtr/RemoteClient/x64
+/RemoteCtr/RemoteCtr/RemoteCtr.aps
+/RemoteCtr/RemoteCtr/*.user
+/RemoteCtr/RemoteClient/RemoteClient.aps
+/RemoteCtr/Debug
+/RemoteCtr/RemoteClient/Debug
+/RemoteCtr/RemoteCtr/Debug
+*.xml
+*.txt
+/RemoteCtr/RemoteCtr/test2020.jpg
+/RemoteCtr/RemoteCtr/test2020.tiff
+/RemoteCtr/RemoteCtr/test2024.jpg
