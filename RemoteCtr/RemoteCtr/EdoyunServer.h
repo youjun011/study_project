@@ -3,6 +3,7 @@
 #include<Windows.h>
 #include "EdoyunThread.h"
 #include "CEdoyunQueue.h"
+#include "CFunction.h"
 #include<map>
 
 enum EdoyunOperator
@@ -36,9 +37,9 @@ typedef AcceptOverlapped<EAccept> ACCEPTOVERLAPPED;
 template<EdoyunOperator>class RecvOverlapped;
 typedef RecvOverlapped<ERecv> RECVOVERLAPPED;
 template<EdoyunOperator>class SendOverlapped;
-typedef AcceptOverlapped<ESend> SENDOVERLAPPED;
+typedef SendOverlapped<ESend> SENDOVERLAPPED;
 template<EdoyunOperator>class ErrorOverlapped;
-typedef AcceptOverlapped<EError> ERROROVERLAPPED;
+typedef ErrorOverlapped<EError> ERROROVERLAPPED;
 
 class EdoyunClient:public ThreadFuncBase {
 public:
@@ -49,12 +50,12 @@ public:
         m_recv.reset();
         m_send.reset();
         m_overlapped.reset();
-        m_vecSend.Clear();
+        //m_vecSend.Clear();
     }
     operator SOCKET() {
         return m_sock;
     }
-    void SetOverlapped(PCLIENT& ptr);
+    void SetOverlapped(EdoyunClient* ptr);
 
     operator PVOID() {
         return &m_buffer[0];
@@ -74,9 +75,9 @@ public:
     sockaddr_in* GetRemoteAddr() { return &m_raddr; }
     size_t GetBufferSize()const { return m_buffer.size(); }
     int Recv();
-    int Send(void* buffer, size_t nSize);
+    int Send();
     int SendData(std::vector<char>& data);
-private:
+public:
     SOCKET m_sock;
     DWORD m_received;
     DWORD m_flags;
@@ -88,7 +89,8 @@ private:
     sockaddr_in m_laddr;
     sockaddr_in m_raddr;
     bool m_isbusy;
-    EdoyunSendQueue<std::vector<char>>m_vecSend;
+    //EdoyunSendQueue<std::vector<char>>m_vecSend;
+    std::list<CPacket>m_sendData;
 };
 
 template<EdoyunOperator>
@@ -106,8 +108,20 @@ class RecvOverlapped :public EdoyunOverlapped, ThreadFuncBase
 public:
     RecvOverlapped();
     int RecvWorker() {
-        int ret = m_client->Recv();
-        return ret;
+        int index = 0;
+
+        int len = m_client->Recv();
+        index += len;
+        CPacket pack((BYTE*)m_client->m_buffer.data(), (size_t&)index);
+        CFunction::getInstance()->ExcuteCommand(pack.sCmd, m_client->m_sendData, pack);
+        index = 0;
+        if (index == 0) {
+            WSASend((SOCKET)*m_client, m_client->SendWSABuffer(), 1, *m_client, m_client->flags(), m_client->SendOverlapped(), NULL);
+            TRACE("ÃüÁî: %d\r\n", pack.sCmd);
+
+
+        }
+        return -1;
     }
 };
 
@@ -117,6 +131,19 @@ class SendOverlapped :public EdoyunOverlapped, ThreadFuncBase
 public:
     SendOverlapped();
     int SendWorker() {
+        //TODO:
+        //int ret = m_client->SendData();
+        while (m_client->m_sendData.size() > 0)
+        {
+
+            //TRACE("send size: %d", m_client->sendPackets.size());
+            CPacket pack = m_client->m_sendData.front();
+            m_client->m_sendData.pop_front();
+            int ret = send(m_client->m_sock, pack.Data(), pack.Size(), 0);
+            TRACE("send ret: %d\r\n", ret);
+
+        }
+        closesocket(m_client->m_sock);
         return -1;
     }
 };
@@ -144,7 +171,6 @@ public:
     }
     ~EdoyunServer();
     bool StartService();
-
     bool NewAccept();
     void BindNewSocket(SOCKET s);
 private:
@@ -154,6 +180,6 @@ private:
     EdoyunThreadPool m_pool;
     HANDLE m_hIOCP;
     SOCKET m_sock;
-    std::map<SOCKET, std::shared_ptr<EdoyunClient>>m_client;
+    std::map<SOCKET, EdoyunClient*>m_client;
     sockaddr_in m_addr;
 };

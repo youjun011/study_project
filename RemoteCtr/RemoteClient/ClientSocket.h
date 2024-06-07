@@ -255,7 +255,7 @@ private:
 	void threadFunc2();
 	BOOL InitSockEnv() {
 		WSADATA data;
-		if (WSAStartup(MAKEWORD(1, 1), &data) != 0) {
+		if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
 			return FALSE;
 		}
 		return TRUE;

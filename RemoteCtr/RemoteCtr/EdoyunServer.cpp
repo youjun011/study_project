@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "EdoyunServer.h"
 #include "MyTool.h"
+
 #pragma warning(disable:4407)
 
 template<EdoyunOperator op>
@@ -40,7 +41,7 @@ int AcceptOverlapped<op>::AcceptWorker()
 
 template<EdoyunOperator op>
 inline RecvOverlapped<op>::RecvOverlapped() {
-    m_operator = ERecv;
+    m_operator = op;
     m_worker = ThreadWorker(this, (FUNCTYPE)&RecvOverlapped<op>::RecvWorker);
     memset(&m_overlapped, 0, sizeof(m_overlapped));
     m_buffer.resize(1024 * 256);
@@ -48,7 +49,7 @@ inline RecvOverlapped<op>::RecvOverlapped() {
 template<EdoyunOperator op>
 inline SendOverlapped<op>::SendOverlapped() {
     m_operator = op;
-    m_worker = ThreadWorker(this, FUNCTYPE & SendOverlapped<op>::SendWorker);
+    m_worker = ThreadWorker(this, (FUNCTYPE) & SendOverlapped<op>::SendWorker);
     memset(&m_overlapped, 0, sizeof(m_overlapped));
     m_buffer.resize(1024 * 256);
 }
@@ -64,19 +65,20 @@ EdoyunClient::EdoyunClient()
     :m_isbusy(false), m_flags(0),
     m_overlapped(new ACCEPTOVERLAPPED()),
     m_recv(new RECVOVERLAPPED()),
-    m_send(new SENDOVERLAPPED()),
-    m_vecSend(this,(SENDCALLBACK)& EdoyunClient::SendData)
+    m_send(new SENDOVERLAPPED())
+    //m_vecSend(this,(SENDCALLBACK)& EdoyunClient::SendData)
 {
     m_sock = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
     m_buffer.resize(1024);
     memset(&m_laddr, 0, sizeof(m_laddr));
     memset(&m_raddr, 0, sizeof(m_raddr));
+    m_used = 0;
 }
 
-void EdoyunClient::SetOverlapped(PCLIENT& ptr) {
-    m_overlapped->m_client = ptr.get();
-    m_recv->m_client = ptr.get();
-    m_send->m_client = ptr.get();
+void EdoyunClient::SetOverlapped(EdoyunClient* ptr) {
+    m_overlapped->m_client = ptr;
+    m_recv->m_client = ptr;
+    m_send->m_client = ptr;
 }
 
 EdoyunClient::operator LPOVERLAPPED() {
@@ -107,33 +109,53 @@ int EdoyunClient::Recv()
 {
     int ret = recv(m_sock, m_buffer.data() + m_used, m_buffer.size() - m_used, 0);
     TRACE("recv : %d\r\n",ret);
-    if (ret <= 0)return -1;
-    m_used += (size_t)ret;
-    CMyTool::Dump((BYTE*)m_buffer.data(), ret);
+    if (ret <= 0&&m_used==0)return -1;
+    if (ret > 0)m_used += ret;
+    return ret;
+    /*ret = m_used;
+    size_t len = (size_t)ret;
+    m_inpack = CPacket((BYTE*)m_buffer.data(), len);
+    if (len > 0) {
+        memmove(m_buffer.data(), m_buffer.data() + len, m_buffer.size() - len);
+        m_used -= len;
+        CFunction::getInstance()->ExcuteCommand(m_inpack.sCmd, m_sendData, m_inpack);
+        TRACE("ÃüÁî£º%d\r\n", m_inpack.sCmd);
+        if (m_sendData.size() > 0) {
+            int ret = WSASend(m_sock, SendWSABuffer(), 1, &m_received, m_flags,
+                SendOverlapped(), NULL);
+            if (ret != 0 && (WSAGetLastError() != WSA_IO_PENDING)) {
+                CMyTool::ShowError();
+                return -1;
+            }
+        }
+
+    }*/
     return 0;
 }
 
-int EdoyunClient::Send(void* buffer, size_t nSize)
+int EdoyunClient::Send()
 {
-    
-    std::vector<char>data(nSize);
-    memcpy(data.data(), buffer, nSize);
-    if (m_vecSend.PushBack(data)) {
-        return 0;
-    }
-    return -1;
+    /*std::vector<char>data(nSize);
+    memcpy(data.data(), buffer, nSize);*/
+    /*while (m_sendData.size() > 0) {
+        if (!m_vecSend.PushBack(m_sendData.front())) {
+            return -1;
+        }
+        m_sendData.pop_back();
+    }*/
+    return 0;
 }
 
 int EdoyunClient::SendData(std::vector<char>& data)
 {
-    if (m_vecSend.Size() > 0) {
-        int ret = WSASend(m_sock, SendWSABuffer(), 1, &m_received, m_flags,
+   /* if (m_vecSend.Size() > 0) {
+        int ret = WSASend(m_sock, (LPWSABUF)data.data(), 1, &m_received, m_flags,
             &m_send->m_overlapped, NULL);
         if (ret != 0 && (WSAGetLastError() != WSA_IO_PENDING)) {
             CMyTool::ShowError();
             return -1;
         }
-    }
+    }*/
     return 0;
 }
 
@@ -142,7 +164,8 @@ EdoyunServer::~EdoyunServer()
     closesocket(m_sock);
     auto it = m_client.begin();
     for (; it != m_client.end(); it++) {
-        it->second.reset();
+        //it->second.reset();
+        delete it->second;
     }
     m_client.clear();
     CloseHandle(m_hIOCP);
@@ -179,7 +202,7 @@ bool EdoyunServer::StartService()
 
 bool EdoyunServer::NewAccept()
 {
-    PCLIENT pClient(new EdoyunClient());
+    EdoyunClient* pClient = new EdoyunClient();
     pClient->SetOverlapped(pClient);
     m_client.insert({ *pClient,pClient });
     if (AcceptEx(m_sock, *pClient, *pClient, 0,
@@ -225,6 +248,7 @@ int EdoyunServer::threadIocp()
         if (CompletionKet != 0) {
             EdoyunOverlapped* pOverlapped = CONTAINING_RECORD(lpOverlapped, EdoyunOverlapped, m_overlapped);
             pOverlapped->m_server = this;
+            TRACE("pOverlapped->m_operator %d \r\n", pOverlapped->m_operator);
             switch (pOverlapped->m_operator)
             {
             case EAccept:
@@ -241,6 +265,7 @@ int EdoyunServer::threadIocp()
             break;
             case ESend:
             {
+                TRACE("Send");
                 SENDOVERLAPPED* pOver = (SENDOVERLAPPED*)pOverlapped;
                 m_pool.DispatchWorker(pOver->m_worker);
             }

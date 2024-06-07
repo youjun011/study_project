@@ -60,6 +60,9 @@
     <ClInclude Include="ENetwork.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CFunction.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RemoteCtr.cpp">
@@ -84,6 +87,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="ENetwork.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CFunction.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

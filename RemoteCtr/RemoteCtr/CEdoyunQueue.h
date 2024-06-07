@@ -245,7 +245,7 @@ protected:
 		case CEdoyunQueue<T>::EQPop:
 			if (CEdoyunQueue<T>::m_lstData.size() > 0) {
 				pParam->Data = CEdoyunQueue<T>::m_lstData.front();
-				if((m_base->*m_callback)(pParam->Data)==0)
+				//if((m_base->*m_callback)(pParam->Data)==0)
 					CEdoyunQueue<T>::m_lstData.pop_front();
 			}
 			delete pParam;
