@@ -24,13 +24,13 @@ public:
 
         std::list<CPacket>lstPack_tem;
         int ret = m_instance->ExcuteCommand(nCmd, lstPack_tem, inpack);
-        if (ret < 0)TRACE("½âÎö´íÎó£¡£¡\r\n");
+        /*if (ret < 0)TRACE("½âÎö´íÎó£¡£¡\r\n");
         for (int i = 0; i < lstPack_tem.size(); i++) {
             CPacket pack = lstPack_tem.front();
             std::vector<char>temData(pack.Size(), 0);
             memcpy(temData.data(), pack.Data(), pack.Size());
             lstPack.push_back(temData);
-        }
+        }*/
     }
 	int ExcuteCommand(int nCmd, std::list<CPacket>& listPacket,CPacket&inPacket);
     static void RunCommand(void* arg, int status, std::list<CPacket>&listPacket, 

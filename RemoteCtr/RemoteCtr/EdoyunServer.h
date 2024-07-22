@@ -75,7 +75,7 @@ public:
     sockaddr_in* GetRemoteAddr() { return &m_raddr; }
     size_t GetBufferSize()const { return m_buffer.size(); }
     int Recv();
-    int Send();
+    int Send(void* buffer, size_t nSize);
     int SendData(std::vector<char>& data);
 public:
     SOCKET m_sock;
@@ -109,18 +109,7 @@ public:
     RecvOverlapped();
     int RecvWorker() {
         int index = 0;
-
-        int len = m_client->Recv();
-        index += len;
-        CPacket pack((BYTE*)m_client->m_buffer.data(), (size_t&)index);
-        CFunction::getInstance()->ExcuteCommand(pack.sCmd, m_client->m_sendData, pack);
-        index = 0;
-        if (index == 0) {
-            WSASend((SOCKET)*m_client, m_client->SendWSABuffer(), 1, *m_client, m_client->flags(), m_client->SendOverlapped(), NULL);
-            TRACE("命令: %d\r\n", pack.sCmd);
-
-
-        }
+        m_client->Recv();
         return -1;
     }
 };
@@ -130,22 +119,7 @@ class SendOverlapped :public EdoyunOverlapped, ThreadFuncBase
 {
 public:
     SendOverlapped();
-    int SendWorker() {
-        //TODO:
-        //int ret = m_client->SendData();
-        while (m_client->m_sendData.size() > 0)
-        {
-
-            //TRACE("send size: %d", m_client->sendPackets.size());
-            CPacket pack = m_client->m_sendData.front();
-            m_client->m_sendData.pop_front();
-            int ret = send(m_client->m_sock, pack.Data(), pack.Size(), 0);
-            TRACE("send ret: %d\r\n", ret);
-
-        }
-        closesocket(m_client->m_sock);
-        return -1;
-    }
+    int SendWorker();
 };
 
 template<EdoyunOperator>
@@ -173,6 +147,13 @@ public:
     bool StartService();
     bool NewAccept();
     void BindNewSocket(SOCKET s);
+    void DeleteSock(SOCKET s) {
+        auto it = m_client.find(s);
+        if (it != m_client.end()) {
+            delete it->second;  // 如果你需要负责释放内存，请确保先删除指向的对象
+            m_client.erase(it); // 然后从映射中移除键值对
+        }
+    }
 private:
     void CreateSocket();
     int threadIocp();

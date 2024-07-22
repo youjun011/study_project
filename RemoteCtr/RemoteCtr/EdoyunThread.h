@@ -4,10 +4,12 @@
 #include<vector>
 #include<mutex>
 #include<Windows.h>
+#include <memory>
 class ThreadFuncBase{};
 typedef int (ThreadFuncBase::* FUNCTYPE)();
 class ThreadWorker {
 public:
+	int a = 1;
 	ThreadWorker():thiz(NULL),func(NULL){}
 	ThreadWorker(void* obj, FUNCTYPE f) :thiz((ThreadFuncBase*)obj),func(f) {}
 	ThreadWorker(const ThreadWorker&worker){

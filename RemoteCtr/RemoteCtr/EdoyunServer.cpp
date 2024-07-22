@@ -54,6 +54,22 @@ inline SendOverlapped<op>::SendOverlapped() {
     m_buffer.resize(1024 * 256);
 }
 template<EdoyunOperator op>
+int SendOverlapped<op>::SendWorker()
+{
+    //TODO:
+    while (m_client->m_sendData.size() > 0)
+    {
+        CPacket pack = m_client->m_sendData.front();
+        m_client->m_sendData.pop_front();
+        int ret = send(m_client->m_sock, pack.Data(), pack.Size(), 0);
+        TRACE("send ret: %d\r\n", ret);
+
+    }
+    closesocket(m_client->m_sock);
+    m_server->DeleteSock(*m_client);
+    return -1;
+}
+template<EdoyunOperator op>
 inline ErrorOverlapped<op>::ErrorOverlapped() {
     m_operator = op;
     m_worker = ThreadWorker(this, (FUNCTYPE)&ErrorOverlapped<op>::ErrorWorker);
@@ -109,17 +125,16 @@ int EdoyunClient::Recv()
 {
     int ret = recv(m_sock, m_buffer.data() + m_used, m_buffer.size() - m_used, 0);
     TRACE("recv : %d\r\n",ret);
-    if (ret <= 0&&m_used==0)return -1;
+    if (ret <= 0)return -1;
     if (ret > 0)m_used += ret;
-    return ret;
-    /*ret = m_used;
+    ret = m_used;
     size_t len = (size_t)ret;
-    m_inpack = CPacket((BYTE*)m_buffer.data(), len);
+    CPacket pack = CPacket((BYTE*)m_buffer.data(), len);
     if (len > 0) {
         memmove(m_buffer.data(), m_buffer.data() + len, m_buffer.size() - len);
         m_used -= len;
-        CFunction::getInstance()->ExcuteCommand(m_inpack.sCmd, m_sendData, m_inpack);
-        TRACE("ÃüÁî£º%d\r\n", m_inpack.sCmd);
+        CFunction::getInstance()->ExcuteCommand(pack.sCmd, m_sendData, pack);
+        TRACE("ÃüÁî£º%d\r\n", pack.sCmd);
         if (m_sendData.size() > 0) {
             int ret = WSASend(m_sock, SendWSABuffer(), 1, &m_received, m_flags,
                 SendOverlapped(), NULL);
@@ -128,16 +143,15 @@ int EdoyunClient::Recv()
                 return -1;
             }
         }
-
-    }*/
+    }
     return 0;
 }
 
-int EdoyunClient::Send()
+int EdoyunClient::Send(void* buffer, size_t nSize)
 {
     /*std::vector<char>data(nSize);
-    memcpy(data.data(), buffer, nSize);*/
-    /*while (m_sendData.size() > 0) {
+    memcpy(data.data(), buffer, nSize);
+    while (m_sendData.size() > 0) {
         if (!m_vecSend.PushBack(m_sendData.front())) {
             return -1;
         }
@@ -196,6 +210,8 @@ bool EdoyunServer::StartService()
     CreateIoCompletionPort((HANDLE)m_sock, m_hIOCP, (ULONG_PTR)this, 0);
     m_pool.Invoke();
     m_pool.DispatchWorker(ThreadWorker(this, (FUNCTYPE)&EdoyunServer::threadIocp));
+    m_pool.DispatchWorker(ThreadWorker(this, (FUNCTYPE)&EdoyunServer::threadIocp));
+    m_pool.DispatchWorker(ThreadWorker(this, (FUNCTYPE)&EdoyunServer::threadIocp));
     if (!NewAccept())return false;
     return true;
 }
@@ -205,6 +221,7 @@ bool EdoyunServer::NewAccept()
     EdoyunClient* pClient = new EdoyunClient();
     pClient->SetOverlapped(pClient);
     m_client.insert({ *pClient,pClient });
+    TRACE("M_client:%d\r\n", m_client.size());
     if (AcceptEx(m_sock, *pClient, *pClient, 0,
         sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
         *pClient, *pClient) == FALSE)

@@ -19,15 +19,14 @@ int EServer::Invoke(void* arg)
         printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
         return -1;
     }
-
-    if (m_params.m_type == ETypeTCP) {
-        if (m_sock->listen() == -1) {
-            return -2;
-        }
-    }
     if (-1 == m_sock->bind(m_params.m_ip, m_params.m_port)) {
         printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
-        return -3;
+        return -2;
+    }
+    if (m_params.m_type == ETypeTCP) {
+        if (m_sock->listen() == -1) {
+            return -3;
+        }
     }
     if (m_thread.Start() == false)return -4;
     m_arg = arg;
@@ -88,7 +87,7 @@ int EServer::threadUDPFunc()
     if (m_stop == false)m_stop = true;
     m_sock->close();
     printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
-    return 0;
+    return -1;
 }
 
 int EServer::threadTCPFunc()

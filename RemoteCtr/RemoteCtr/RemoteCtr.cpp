@@ -154,8 +154,21 @@ void iocp() {
 #include "ESocket.h"
 #include "ENetwork.h"
 
+std::vector<ESockaddrIn>vecAddr;
+
 int RecvFromCB(void* arg, const EBuffer& buffer, ESockaddrIn& addr) {
     EServer* server = (EServer*)arg;
+    if (vecAddr.size() ==1 ) {
+        ESockaddrIn temaddr = vecAddr.front();
+        short port = temaddr.GetPort();
+        std::string p;
+        p.resize(2);
+        memcpy((void*)p.c_str(), (void*)&port, sizeof(short));
+        std::string tem = p + temaddr.GetIP().c_str();
+        EBuffer addrBuff(tem.c_str());
+        return server->Sendto(addr, addrBuff);
+    }
+    if (vecAddr.size() < 2)vecAddr.push_back(addr);
     return server->Sendto(addr, buffer);
 }
 
@@ -177,68 +190,61 @@ void udp_server() {
     getchar();
 }
 void udp_client(bool ishost) {
-    
     Sleep(2000);
-    sockaddr_in server, client;
-    int len = sizeof(client);
-    memset(&server, 0, sizeof(server));
-    server.sin_family = AF_INET;
-    server.sin_port = htons(20000);
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
-    SOCKET sock = socket(PF_INET, SOCK_DGRAM, 0);
-    if (sock == INVALID_SOCKET) {
+
+    ESockaddrIn server("127.0.0.1",20000);
+    ESocket client(ETypeUDP);
+    if (client == INVALID_SOCKET) {
         printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
         return;
     }
     if (ishost) {
         printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
         EBuffer msg = "hello!\n";
-        int ret = sendto(sock, msg.c_str(), msg.size(), 0, (sockaddr*)&server, sizeof(server));
+        int ret = client.sendto(msg, server);
         printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
         if (ret > 0) {
-            msg.resize(1024);
-            memset((char*)msg.c_str(), 0, msg.size());
-            ret = recvfrom(sock, (char*)msg.c_str(), msg.size(), 0, (sockaddr*)&client, &len);
-            printf("host %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,
-                __LINE__, __FUNCTION__, WSAGetLastError(), ret);
+            msg.Update(0, 1024);
+            ESockaddrIn server1;
+            ret = client.recvfrom(msg, server1);
+            printf("host %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,__LINE__, __FUNCTION__, WSAGetLastError(), ret);
             if (ret > 0) {
-                printf("%s(%d):%s ip = %08X port = %d\r\n",__FILE__, __LINE__, __FUNCTION__, client.sin_addr.s_addr, ntohs(client.sin_port));
+                printf("%s(%d):%s ip = %s port = %d\r\n",__FILE__, __LINE__, __FUNCTION__, server1.GetIP(), server1.GetPort());
                 printf("%s(%d):%s msg = %d\r\n", __FILE__, __LINE__, __FUNCTION__,msg.size());
             }
-            memset((char*)msg.c_str(), 0, msg.size());
-            ret = recvfrom(sock, (char*)msg.c_str(), msg.size(), 0, (sockaddr*)&client, &len);
-            printf("host %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,
-                __LINE__, __FUNCTION__, WSAGetLastError(), ret);
+            msg.Update(0, 1024);
+            ret = client.recvfrom(msg, server1);
+            ESockaddrIn* pClientADdr = (ESockaddrIn*)msg.c_str();
+            printf("host %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,__LINE__, __FUNCTION__, WSAGetLastError(), ret);
             if (ret > 0) {
-                printf("%s(%d):%s ip = %08X port = %d\r\n", __FILE__, __LINE__, __FUNCTION__, client.sin_addr.s_addr, ntohs(client.sin_port));
+                printf("%s(%d):%s ip = %s port = %d\r\n", __FILE__, __LINE__, __FUNCTION__, pClientADdr->GetIP(), pClientADdr->GetPort());
                 printf("%s(%d):%s msg = %s\r\n", __FILE__, __LINE__, __FUNCTION__, msg.c_str());
             }
         }
     }
     else {
         printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
-        std::string msg = "hello world!\n";
-        int ret = sendto(sock, msg.c_str(), msg.size(), 0, (sockaddr*)&server, sizeof(server));
-        printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
+        EBuffer msg = "hello world!(从客户端)\n";
+        int ret = client.sendto(msg, server);
+        printf("%s(%d):%s ret = %d\r\n", __FILE__, __LINE__, __FUNCTION__, ret);
         if (ret > 0) {
+            msg.clear();
             msg.resize(1024);
-            memset((char*)msg.c_str(), 0, msg.size());
-            ret = recvfrom(sock, (char*)msg.c_str(), msg.size(), 0, (sockaddr*)&client, &len);
-            printf("client %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,
-                __LINE__, __FUNCTION__, WSAGetLastError(), ret);
+            ESockaddrIn server2;
+            ret = client.recvfrom(msg, server2);
+            printf("client %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,__LINE__, __FUNCTION__, WSAGetLastError(), ret);
             if (ret > 0) {
-                sockaddr_in addr;
-                memcpy(&addr, msg.c_str(), sizeof(addr));
-                sockaddr_in* paddr = &addr;
-                printf("%s(%d):%s ip = %08X port = %d\r\n",__FILE__, __LINE__, __FUNCTION__, client.sin_addr.s_addr, ntohs(client.sin_port));
+                char* p = (char*)msg.c_str();
+                short port = *(short*)p;
+                printf("%s(%d):%s ip = %s port = %d\r\n",__FILE__, __LINE__, __FUNCTION__, server2.GetIP(), server2.GetPort());
                 printf("%s(%d):%s msg = %d\r\n", __FILE__, __LINE__, __FUNCTION__, msg.size());
-                printf("%s(%d):%s ip = %08X port = %d\r\n", __FILE__, __LINE__, __FUNCTION__, paddr->sin_addr.s_addr, ntohs(paddr->sin_port));
-                msg = "hello (from client)";
+                printf("%s(%d):%s ip = %s port = %d\r\n", __FILE__, __LINE__, __FUNCTION__, msg.c_str()+2, port);
+                /*msg = "hello (from client)";
                 ret = sendto(sock, (char*)msg.c_str(), msg.size(), 0, (sockaddr*)paddr, sizeof(sockaddr_in));
-                printf("client %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,__LINE__, __FUNCTION__, WSAGetLastError(), ret);
+                printf("client %s(%d):%s  ERROR(%d)!!! ret =%d\r\n", __FILE__,__LINE__, __FUNCTION__, WSAGetLastError(), ret);*/
                 printf("%s(%d):%s\r\n", __FILE__, __LINE__, __FUNCTION__);
             }
         }
     }
-    closesocket(sock);
+    //closesocket(sock);
 }

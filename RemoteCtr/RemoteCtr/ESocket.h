@@ -11,7 +11,7 @@ class ESockaddrIn
 {
 public:
 	ESockaddrIn() {
-		memcpy(&m_addr, 0, sizeof(m_addr));
+		memset(&m_addr, 0, sizeof(sockaddr_in));
 		m_nPort = -1;
 	}
 	ESockaddrIn(sockaddr_in addr) {
@@ -64,10 +64,19 @@ public:
 		return m_nPort;
 	}
 	inline int size()const { return sizeof(sockaddr_in); }
+	const char* Data() {
+		strOut.resize(m_ip.size() + sizeof(sockaddr_in) + sizeof(short));
+		char* pData = (char*)strOut.c_str();
+		memcpy(pData, m_ip.c_str(), m_ip.size()); pData += m_ip.size();
+		memcpy(pData, (void*)&m_addr, sizeof(sockaddr_in)); pData += sizeof(sockaddr_in);
+		*(short*)pData = m_nPort;
+		return strOut.c_str();
+	}
 private:
 	std::string m_ip;
 	sockaddr_in m_addr;
 	short m_nPort;
+	std::string strOut;
 };
 
 class EBuffer :public std::string {
@@ -78,7 +87,7 @@ public:
 			memset((void*)c_str(), 0, size);
 		}
 	}
-	EBuffer(void* buffer, size_t size) :std::string() {
+	EBuffer(void* buffer, size_t size)  {
 		resize(size);
 		memcpy((void*)c_str(), buffer, size);
 	}
